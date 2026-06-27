@@ -358,18 +358,53 @@ Community Intelligence Updated
 
 ---
 
-# 📸 Screenshots
+# 📸 Application Preview
 
-> *(Add screenshots after deployment.)*
+## 🚀 Landing Page
 
-- Landing Page
-- User Dashboard
-- AI Safety Map
-- Guardian Mode
-- Community Intelligence
-- Family Portal
-- Police Dashboard
-- Analytics Dashboard
+The landing page introduces SwaShakti and its AI-powered safety ecosystem.
+
+![Landing Page](assets/screenshots/landing-page.png)
+
+---
+
+## 📝 Safety Registration
+
+Users configure their emergency profile and guardian contacts before activating SwaShakti.
+
+![Safety Registration](assets/screenshots/onboarding.png)
+
+---
+
+## 🛡️ User Safety Dashboard
+
+The main dashboard provides AI Safe Routing, Explainable AI, Panic SOS, Guardian Mode, and multilingual distress detection.
+
+![User Dashboard](assets/screenshots/user-safety-dashboard.png)
+
+---
+
+## 🧠 Explainable AI Decision Engine
+
+Shows how AI calculates safety scores using GPS, crowd density, lighting, nearby police stations, and historical data.
+
+![Explainable AI](assets/screenshots/core-ai-safety-engine.png)
+
+---
+
+## 🚔 Police Dispatch Dashboard
+
+Provides emergency responders with AI landmark translation, emergency alerts, and evidence summaries.
+
+![Police Dashboard](assets/screenshots/police-dispatch-dashboard.png)
+
+---
+
+## 📊 Analytics Dashboard
+
+Displays AI confidence, safety analytics, community reports, and Guardian Mode statistics.
+
+![Analytics Dashboard](assets/screenshots/analytics-dashboard.png)
 
 ---
 
