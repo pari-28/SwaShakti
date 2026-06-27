@@ -1,0 +1,6 @@
+{
+  "name": "SwaShakti",
+  "description": "SwaShakti is a women's safety platform for India, offering instant SOS alerts, real-time AI safe route suggestions, and multilingual vocal trigger monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
