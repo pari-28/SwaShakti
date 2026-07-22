@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import homeRoutes from "./routes/home.routes";
+import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
+import emergencyRoutes from "./routes/emergency.routes";
 
 const app = express();
 
@@ -18,10 +21,25 @@ app.get("/health", (req, res) => {
 
 // Home Route
 app.use("/api/home", homeRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/emergency", emergencyRoutes);
 
 // Start Server
-const PORT = 5001;
+const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+server.on("error", (err) => {
+  console.error("Server error:", err);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
 });

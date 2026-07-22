@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SOSStatus {
+  ACTIVE
+  RESOLVED
+  CANCELLED
+}
+
+model User {
+  id         String  @id @default(uuid())
+  fullName   String
+  email      String  @unique
+  password   String
+  phone      String? @unique
+  profilePic String?
+  isVerified Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  emergencyContacts EmergencyContact[]
+  sosAlerts         SOSAlert[]
+}
+
+model EmergencyContact {
+  id       String @id @default(uuid())
+  name     String
+  phone    String
+  relation String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SOSAlert {
+  id        String    @id @default(uuid())
+  latitude  Float
+  longitude Float
+  status    SOSStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
