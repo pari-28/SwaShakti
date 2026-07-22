@@ -1,10 +1,58 @@
+import { useEffect, useState } from "react";
 import { Shield, Map, Mic, ChevronRight, Sparkles, Phone, Car, Lock, Bell } from 'lucide-react';
 
 interface HomepageProps {
   onGetStarted: () => void;
 }
 
+interface HomeData {
+  appName: string;
+  version: string;
+  status: string;
+  features: string[];
+}
+
 export default function Homepage({ onGetStarted }: HomepageProps) {
+  const [homeData, setHomeData] = useState<HomeData | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+  const fetchHomeData = async () => {
+    try {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/home`;
+
+      const response = await fetch(apiUrl);
+
+      const data = await response.json();
+
+      setHomeData(data);
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      setError("Unable to connect to backend.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchHomeData();
+}, []);
+if (loading) {
+  return (
+    <div className="min-h-screen flex justify-center items-center bg-[#0A0A1A] text-white text-xl">
+      Loading SwaShakti...
+    </div>
+  );
+}
+if (error) {
+  return (
+    <div className="min-h-screen flex justify-center items-center bg-[#0A0A1A] text-red-500 text-xl">
+      {error}
+    </div>
+  );
+}
   return (
     <div className="relative min-h-screen bg-[#0A0A1A] text-white flex flex-col justify-between overflow-hidden font-sans select-none">
       
@@ -132,12 +180,12 @@ export default function Homepage({ onGetStarted }: HomepageProps) {
             <Shield className="h-6 w-6" />
           </div>
           <span className="font-display font-extrabold text-2xl tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            SwaShakti
+            {homeData?.appName}
           </span>
         </div>
         <div className="flex items-center space-x-1 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md">
           <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse mr-2" />
-          <span className="text-xs font-mono tracking-widest text-slate-300 font-medium">SHIELD ACTIVE</span>
+          <span className="text-xs font-mono tracking-widest text-slate-300 font-medium">{homeData?.status}</span>
         </div>
       </header>
 
@@ -330,7 +378,7 @@ export default function Homepage({ onGetStarted }: HomepageProps) {
 
       {/* Footer */}
       <footer className="relative z-10 px-6 py-6 border-t border-white/5 text-center text-slate-500 text-xs flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto w-full">
-        <p className="mb-2 sm:mb-0">© 2026 SwaShakti India. Crafted for absolute safety.</p>
+        <p className="mb-2 sm:mb-0">  © 2026 {homeData?.appName} • v{homeData?.version}</p>
         <div className="flex space-x-4">
           <span className="flex items-center text-[#8F66FF]">
             <Sparkles className="h-3.5 w-3.5 mr-1" />
