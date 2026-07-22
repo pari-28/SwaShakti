@@ -4,6 +4,8 @@ import homeRoutes from "./routes/home.routes";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import emergencyRoutes from "./routes/emergency.routes";
+import sosRoutes from "./routes/sos.routes";
+import { errorHandler } from "./middleware/error.middleware";
 
 const app = express();
 
@@ -24,6 +26,10 @@ app.use("/api/home", homeRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/emergency", emergencyRoutes);
+app.use("/api/sos", sosRoutes);
+
+// Global error handler
+app.use(errorHandler);
 
 // Start Server
 const PORT = process.env.PORT || 5001;
