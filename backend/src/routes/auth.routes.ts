@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { register, login } from "../controllers/auth.controller";
+import {
+  register,
+  login,
+  saveFcmToken,
+} from "../controllers/auth.controller";
+import { authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -9,5 +14,6 @@ router.get("/", (req, res) => {
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/fcm-token", authenticate, saveFcmToken);
 
 export default router;

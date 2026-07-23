@@ -305,22 +305,69 @@ export default function Dashboard({
     pushLog('Fake call triggered. Deterrent protocol activated.');
   };
 
-  const handleTriggerPanicSos = () => {
-    updateNested('systemStatus', { isSosActive: true, riskScore: 95 });
-    updateState({
-      activeAlertCount: globalState.activeAlertCount + 1,
-      policeAlerts: [
-        {
-          id: Date.now(),
-          message: `🚨 MANUAL SOS TRIGGERED BY ${profile.fullName.toUpperCase()}`,
-          status: 'active',
-          timestamp: getFormattedTime()
-        },
-        ...globalState.policeAlerts
-      ]
-    });
-    pushLog('[SOS] Panic button activated by user.');
-  };
+  const handleTriggerPanicSos = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const response = await fetch("http://localhost:5001/api/sos", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            message: "Need immediate help",
+          }),
+        });
+
+        const result = await response.json();
+
+        console.log("SOS Response:", result);
+
+        if (!response.ok) {
+          alert(result.message || "SOS failed");
+          return;
+        }
+
+        updateNested("systemStatus", {
+          isSosActive: true,
+          riskScore: 95,
+        });
+
+        updateState({
+          activeAlertCount: globalState.activeAlertCount + 1,
+          policeAlerts: [
+            {
+              id: Date.now(),
+              message: `🚨 MANUAL SOS TRIGGERED BY ${profile.fullName.toUpperCase()}`,
+              status: "active",
+              timestamp: getFormattedTime(),
+            },
+            ...globalState.policeAlerts,
+          ],
+        });
+
+        pushLog("[SOS] Panic button activated.");
+      },
+      (error) => {
+        console.error(error);
+        alert("Unable to access location.");
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong.");
+  }
+};
 
   const handleTriggerSilentPolice = () => {
     updateState({

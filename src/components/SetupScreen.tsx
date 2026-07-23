@@ -14,6 +14,9 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
   const [bloodGroup, setBloodGroup] = useState('B+');
   const [city, setCity] = useState('');
 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
   // Contact 1
   const [c1Name, setC1Name] = useState('');
   const [c1Phone, setC1Phone] = useState('');
@@ -44,6 +47,8 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
     setPhoneNumber('9876543210');
     setBloodGroup('O+');
     setCity('Mumbai');
+    setEmail('priya@gmail.com');
+    setPassword('SwaShakti123');
     
     setC1Name('Aarav Sharma (Father)');
     setC1Phone('9812345678');
@@ -60,8 +65,18 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
     e.preventDefault();
 
     // Basic Validation
-    if (!fullName.trim() || !phoneNumber.trim() || !city.trim() || !c1Name.trim() || !c1Phone.trim() || !c2Name.trim() || !c2Phone.trim()) {
-      setError('Please fill in all safety profiles and both emergency contacts.');
+    if (
+      !fullName.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !phoneNumber.trim() ||
+      !city.trim() ||
+      !c1Name.trim() ||
+      !c1Phone.trim() ||
+      !c2Name.trim() ||
+      !c2Phone.trim()
+    ) {
+      setError("Please fill in all safety profiles and both emergency contacts.");
       return;
     }
 
@@ -75,6 +90,8 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
     // Compile profile
     const profile: UserProfile = {
       fullName,
+      email,
+      password,
       phoneNumber,
       bloodGroup,
       city,
@@ -263,7 +280,36 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
                     />
+                    </div>
+                    <div className="col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">
+                      Email
+                    </label>
+
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. priya@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
+                    />
                   </div>
+                  <div className="col-span-2">
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">
+                    Password
+                  </label>
+
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter a password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
+                  />
+                </div>
+                  
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Phone Number</label>

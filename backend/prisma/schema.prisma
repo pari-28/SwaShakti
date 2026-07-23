@@ -21,6 +21,8 @@ model User {
   profilePic String?
   isVerified Boolean @default(false)
 
+  fcmToken   String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

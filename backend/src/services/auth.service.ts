@@ -4,7 +4,13 @@ import { generateToken } from "../utils/jwt";
 
 export class AuthService {
   async register(data: any) {
-    const { fullName, email, password, phone } = data;
+    const {
+  fullName,
+  email,
+  password,
+  phone,
+  emergencyContacts,
+} = data;
 
     const existingUser = await prisma.user.findUnique({
       where: {
@@ -16,16 +22,38 @@ export class AuthService {
       throw new Error("User already exists");
     }
 
+    const existingPhone = await prisma.user.findUnique({
+      where: {
+        phone,
+      },
+    });
+
+    if (existingPhone) {
+      throw new Error("Phone number already registered");
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-    data: {
-        fullName,
-        email,
-        password: hashedPassword,
-        phone,
+  data: {
+    fullName,
+    email,
+    password: hashedPassword,
+    phone,
+
+    emergencyContacts: {
+      create: emergencyContacts.map((contact: any) => ({
+        name: contact.name,
+        phone: contact.phone,
+        relation: contact.relation,
+      })),
     },
-    });
+  },
+
+  include: {
+    emergencyContacts: true,
+  },
+});
 
     const { password: _, ...userWithoutPassword } = user;
 
@@ -64,6 +92,21 @@ export class AuthService {
   return {
     token,
     user: userWithoutPassword,
+  };
+}
+
+async saveFcmToken(userId: string, token: string) {
+  await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      fcmToken: token,
+    },
+  });
+
+  return {
+    message: "FCM token saved successfully",
   };
 }
 }

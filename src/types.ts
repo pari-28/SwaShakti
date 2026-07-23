@@ -6,6 +6,8 @@ export interface EmergencyContact {
 
 export interface UserProfile {
   fullName: string;
+  email: string;
+  password: string;
   phoneNumber: string;
   bloodGroup: string;
   city: string;

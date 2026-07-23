@@ -3,6 +3,7 @@ import Homepage from './components/Homepage';
 import SetupScreen from './components/SetupScreen';
 import Dashboard from './components/Dashboard';
 import { UserProfile } from './types';
+import { requestNotificationPermission } from "./utils/fcm";
 
 export default function App() {
   const [globalState, setGlobalState] = useState<any>({
@@ -56,6 +57,7 @@ export default function App() {
     isTerminalOpen: false,
     workspaceTint: false
   });
+
 
   const updateState = (patch: any) => setGlobalState((prev: any) => ({ ...prev, ...patch }));
   const updateNested = (key: string, patch: any) => setGlobalState((prev: any) => ({ 
@@ -129,8 +131,69 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+
+
   // Handle successful safety registration
-  const handleRegisterProfile = (userProfile: UserProfile) => {
+  const handleRegisterProfile = async (userProfile: UserProfile) => {
+    try {
+  const response = await fetch("http://localhost:5001/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+  fullName: userProfile.fullName,
+  email: userProfile.email,
+  password: userProfile.password,
+  phone: userProfile.phoneNumber,
+
+  emergencyContacts: [
+    {
+      name: userProfile.contact1.name,
+      phone: userProfile.contact1.phone,
+      relation: "Primary Guardian",
+    },
+    {
+      name: userProfile.contact2.name,
+      phone: userProfile.contact2.phone,
+      relation: "Secondary Guardian",
+    },
+  ],
+}),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    alert(result.message || "Registration failed");
+    return;
+  }
+  const jwtToken = result.data.token;
+
+localStorage.setItem("token", jwtToken);
+
+const fcmToken = await requestNotificationPermission();
+
+if (fcmToken) {
+  const saveTokenResponse = await fetch(
+    "http://localhost:5001/api/auth/fcm-token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwtToken}`,
+      },
+      body: JSON.stringify({
+        token: fcmToken,
+      }),
+    }
+  );
+
+  if (!saveTokenResponse.ok) {
+    console.error("Failed to save FCM token");
+  }
+}
+
     updateState({
       appState: 'dashboard',
       userProfile: {
@@ -152,6 +215,10 @@ export default function App() {
         }
       ]
     });
+    } catch (error) {
+  console.error(error);
+  alert("Something went wrong while registering.");
+}
   };
 
   // If we launch straight to dashboard or need standard demo data populated

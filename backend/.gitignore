@@ -16,3 +16,6 @@ dist/
 .claude/
 .windsurf/
 skills-lock.json
+
+# Firebase Admin SDK
+firebase-service-account.json

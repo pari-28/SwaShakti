@@ -6,6 +6,7 @@ import userRoutes from "./routes/user.routes";
 import emergencyRoutes from "./routes/emergency.routes";
 import sosRoutes from "./routes/sos.routes";
 import { errorHandler } from "./middleware/error.middleware";
+import "./config/firebase";
 
 const app = express();
 

@@ -1,6 +1,7 @@
 import { ApiError } from "../errors/ApiError";
 import prisma from "../config/prisma";
 import { SOSStatus } from "@prisma/client";
+import NotificationService from "./notification.service";
 
 class SOSService {
   static async create(
@@ -11,6 +12,7 @@ class SOSService {
       message?: string;
     }
   ) {
+    console.log("✅ SOSService.create() called");
     const { latitude, longitude, message } = data;
 
     // Check if user already has an active SOS
@@ -31,15 +33,41 @@ class SOSService {
     }
 
     const sos = await prisma.sOSAlert.create({
-      data: {
-        latitude,
-        longitude,
-        message,
-        userId,
-      },
-    });
+  data: {
+    latitude,
+    longitude,
+    message,
+    userId,
+  },
+});
 
-    return sos;
+// Get user's FCM token
+const user = await prisma.user.findUnique({
+  where: {
+    id: userId,
+  },
+});
+
+console.log("User found:", user?.email);
+console.log("FCM Token:", user?.fcmToken);
+
+if (user?.fcmToken) {
+    if (user?.fcmToken) {
+  console.log("Sending notification...");
+  try {
+  const response = await NotificationService.sendPushNotification(
+    user.fcmToken,
+    "🚨 SOS Activated",
+    "Emergency detected. Help is being notified."
+  );
+
+  console.log("FCM Response:", response);
+} catch (error) {
+  console.error("FCM Error:", error);
+}
+}
+
+return sos;
   }
 
     static async getActive(userId: string) {
