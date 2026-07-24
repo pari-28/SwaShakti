@@ -35,6 +35,8 @@ import CommunityEvidenceAI, { EvidenceItem } from './CommunityEvidenceAI';
 import FamilyTrackingView from './FamilyTrackingView';
 import PoliceDispatchView from './PoliceDispatchView';
 import SwaShaktiAnalyticsView from './SwaShaktiAnalyticsView';
+import { useLocation } from "../hooks/useLocation";
+import LiveMap from "./LiveMap";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -114,7 +116,9 @@ export default function Dashboard({
   const deviationTimerRef = useRef<any>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const watchIdRef = useRef<number | null>(null);
-const activeSOSIdRef = useRef<string | null>(null);
+  const activeSOSIdRef = useRef<string | null>(null);
+
+  const { location, error } = useLocation();
 
   // Helper to format current time as HH:MM:SS
   const getFormattedTime = () => {
@@ -830,8 +834,17 @@ socket.on("sos-resolved", (data) => {
               </h1>
               <div className="flex items-center space-x-1.5 text-slate-500 text-xs mt-1">
                 <MapPin className="h-3.5 w-3.5 text-[#6C3EFF]" />
-                <span className="font-semibold text-slate-600">{profile.city}</span>
+                <span className="font-semibold text-slate-600">
+    {location?.address ?? "Fetching current location..."}
+</span>
               </div>
+              {error && (
+                  <p className="text-red-600 text-sm mt-2">
+                    {error}
+                  </p>
+                )}
+
+              
             </div>
 
             {/* Right-aligned Live Digital Clock */}
@@ -924,120 +937,12 @@ socket.on("sos-resolved", (data) => {
                   {/* Map and Explainable AI Insights Card layout */}
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     
-                    {/* SVG Map Container */}
-                    <div className="xl:col-span-8 relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-100 h-[380px]">
-                    
-                    <svg 
-                      viewBox="0 0 800 380" 
-                      className="w-full h-[380px] bg-[#f8fafc] text-slate-800 select-none"
-                    >
-                      {/* Grid background street lines */}
-                      <g stroke="#e2e8f0" strokeWidth="2" strokeDasharray="3 3">
-                        <line x1="0" y1="50" x2="800" y2="50" />
-                        <line x1="0" y1="130" x2="800" y2="130" />
-                        <line x1="0" y1="210" x2="800" y2="210" />
-                        <line x1="0" y1="290" x2="800" y2="290" />
-                        <line x1="0" y1="350" x2="800" y2="350" />
-                        
-                        <line x1="100" y1="0" x2="100" y2="380" />
-                        <line x1="250" y1="0" x2="250" y2="380" />
-                        <line x1="400" y1="0" x2="400" y2="380" />
-                        <line x1="550" y1="0" x2="550" y2="380" />
-                        <line x1="700" y1="0" x2="700" y2="380" />
-                      </g>
-
-                      {/* Main street background corridors */}
-                      <g stroke="#cbd5e1" strokeWidth="12" strokeLinecap="round" opacity="0.4">
-                        <path d="M 120,290 L 250,290 L 250,130 L 550,130 L 680,130" fill="none" />
-                        <path d="M 120,290 L 120,130 L 400,130 L 400,50 L 680,50 L 680,130" fill="none" />
-                      </g>
-
-                      {/* ROUTE A: Green Path - 92% Safe */}
-                      <path 
-                        d="M 120,290 L 250,290 L 250,130 L 550,130 L 680,130" 
-                        fill="none" 
-                        stroke="#10b981" 
-                        strokeWidth="6" 
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      
-                      {/* ROUTE B: Red Dashed Path - 43% Safe */}
-                      <path 
-                        d="M 120,290 L 120,50 L 400,50 L 680,50 L 680,130" 
-                        fill="none" 
-                        stroke="#ef4444" 
-                        strokeWidth="4" 
-                        strokeDasharray="8 6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-
-                      {/* ROUTE TEXT LABELS */}
-                      <g fontFamily="Inter, system-ui, sans-serif" fontSize="11" fontWeight="800">
-                        <rect x="260" y="102" width="245" height="20" rx="6" fill="#ffffff" stroke="#10b981" strokeWidth="1" opacity="0.95" />
-                        <text x="270" y="116" fill="#10b981">Route A — 92% Safe (Crowded, Well-Lit)</text>
-
-                        <rect x="225" y="22" width="260" height="20" rx="6" fill="#ffffff" stroke="#ef4444" strokeWidth="1" opacity="0.95" />
-                        <text x="235" y="36" fill="#ef4444">Route B — 43% Safe (Isolated, Poor Lighting)</text>
-                      </g>
-
-                      {/* Starting Point Marker */}
-                      <g transform="translate(120, 290)">
-                        <circle cx="0" cy="0" r="14" fill="#3b82f6" opacity="0.3" className="animate-pulse-dot" />
-                        <circle cx="0" cy="0" r="6" fill="#2563eb" />
-                        <text x="12" y="4" fontFamily="Inter, system-ui, sans-serif" fontSize="10" fontWeight="800" fill="#2563eb">You are here</text>
-                      </g>
-
-                      {/* Destination Point Marker (Gold Star) */}
-                      <g transform="translate(680, 130)">
-                        <circle cx="0" cy="0" r="16" fill="#f59e0b" opacity="0.25" className="animate-pulse" />
-                        <path d="M0,-8 L2.5,-2 L8,-2.5 L3.5,1.5 L5,7 L0,3.5 L-5,7 L-3.5,1.5 L-8,-2.5 L-2.5,-2 Z" fill="#d97706" stroke="#b45309" strokeWidth="1" />
-                        <text x="-70" y="22" fontFamily="Inter, system-ui, sans-serif" fontSize="11" fontWeight="800" fill="#b45309">Destination</text>
-                      </g>
-
-                      {/* Route A Features Icons */}
-                      <g transform="translate(250, 210)">
-                        <circle cx="0" cy="0" r="10" fill="#fef08a" stroke="#ca8a04" strokeWidth="1" />
-                        <circle cx="0" cy="0" r="4" fill="#eab308" />
-                        <text x="12" y="3" fontFamily="Inter, system-ui, sans-serif" fontSize="9" fontWeight="600" fill="#854d0e">Streetlight Link</text>
-                      </g>
-
-                      <g transform="translate(370, 130)">
-                        <circle cx="0" cy="0" r="10" fill="#bbf7d0" stroke="#16a34a" strokeWidth="1" />
-                        <circle cx="0" cy="0" r="4" fill="#15803d" />
-                        <text x="-32" y="-14" fontFamily="Inter, system-ui, sans-serif" fontSize="9" fontWeight="600" fill="#14532d">Pedestrian Flow</text>
-                      </g>
-
-                      <g transform="translate(480, 130)">
-                        <circle cx="0" cy="0" r="10" fill="#bfdbfe" stroke="#2563eb" strokeWidth="1" />
-                        <circle cx="0" cy="0" r="4" fill="#1d4ed8" />
-                        <text x="-25" y="22" fontFamily="Inter, system-ui, sans-serif" fontSize="9" fontWeight="600" fill="#1e3a8a">Police Patrol Booth</text>
-                      </g>
-
-                      {/* Route B Warnings */}
-                      <g transform="translate(400, 50)">
-                        <circle cx="0" cy="0" r="10" fill="#1e293b" stroke="#0f172a" strokeWidth="1.5" />
-                        <circle cx="0" cy="0" r="3" fill="#ef4444" className="animate-pulse" />
-                        <text x="-42" y="-15" fontFamily="Inter, system-ui, sans-serif" fontSize="10" fontWeight="800" fill="#1e293b">Poorly Lit Zone</text>
-                      </g>
-                    </svg>
-
-                    <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-3.5 max-w-sm shadow-md text-xs text-slate-700">
-                      <div className="flex items-center gap-1.5 font-bold text-[#6C3EFF]">
-                        <Compass className="h-4 w-4 animate-spin" style={{ animationDuration: '8s' }} />
-                        <span>SwaShakti Compass AI</span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-500 leading-normal">
-                        Route A features active camera grids and lit corridors. Select Destination coordinates to override route.
-                      </p>
+                    {/* Live Map Container */}
+                    <div className="xl:col-span-8">
+                      {location && (
+                        <LiveMap location={location} />
+                      )}
                     </div>
-
-                    <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-sm text-[10px] font-mono text-slate-400 font-bold tracking-tight">
-                      Last Updated: {timeStr}
-                    </div>
-
-                  </div>
 
                     {/* Explainable AI Insights Card */}
                     <div className="xl:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-4.5 flex flex-col justify-between shadow-sm">
