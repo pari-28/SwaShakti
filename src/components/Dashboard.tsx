@@ -1,3 +1,4 @@
+import { socket } from "../services/socket";
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, 
@@ -35,6 +36,8 @@ import FamilyTrackingView from './FamilyTrackingView';
 import PoliceDispatchView from './PoliceDispatchView';
 import SwaShaktiAnalyticsView from './SwaShaktiAnalyticsView';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface DashboardProps {
   globalState: any;
   updateState: (patch: any) => void;
@@ -43,16 +46,18 @@ interface DashboardProps {
   profile: any;
   onReset: () => void;
   onGoHome: () => void;
+  onLogout: () => void;
 }
 
-export default function Dashboard({ 
-  globalState, 
-  updateState, 
-  updateNested, 
-  pushLog, 
-  profile, 
-  onReset, 
-  onGoHome 
+export default function Dashboard({
+  globalState,
+  updateState,
+  updateNested,
+  pushLog,
+  profile,
+  onReset,
+  onGoHome,
+  onLogout
 }: DashboardProps) {
   // Navigation active tab computed from global activeView
   const activeTab = globalState.activeView === 'user' ? 'User Safety Desk'
@@ -108,6 +113,8 @@ export default function Dashboard({
 
   const deviationTimerRef = useRef<any>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
+  const watchIdRef = useRef<number | null>(null);
+const activeSOSIdRef = useRef<string | null>(null);
 
   // Helper to format current time as HH:MM:SS
   const getFormattedTime = () => {
@@ -139,10 +146,110 @@ export default function Dashboard({
 
   // Clean up interval on unmount
   useEffect(() => {
-    return () => {
-      if (deviationTimerRef.current) clearInterval(deviationTimerRef.current);
-    };
-  }, []);
+  const savedSOS = localStorage.getItem("activeSOSId");
+
+  if (savedSOS) {
+    activeSOSIdRef.current = savedSOS;
+  }
+}, []);
+
+  useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) return;
+
+  socket.auth = { token };
+
+  socket.connect();
+
+  socket.on("connect", () => {
+    console.log("🟢 Socket Connected:", socket.id);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Socket Disconnected");
+  });
+
+  socket.on("connect_error", (err) => {
+  console.error("❌ Socket Error:", err.message);
+});
+
+  // Listen when backend broadcasts a new SOS
+  socket.on("sos-created", (data) => {
+  console.log("🚨 New SOS:", data);
+
+  pushLog(`[SOCKET] New SOS received: ${data.id}`);
+});
+
+  // Listen when backend acknowledges an SOS
+  socket.on("sos-success", (data) => {
+  console.log("✅ SOS Success:", data);
+
+  updateNested("systemStatus", {
+    isSosActive: true,
+    riskScore: 95,
+  });
+
+  updateState({
+  activeAlertCount: globalState.activeAlertCount + 1,
+  policeAlerts: [
+    {
+      id: Date.now(),
+      message: `🚨 MANUAL SOS TRIGGERED BY ${profile.fullName.toUpperCase()}`,
+      status: "active",
+      timestamp: getFormattedTime(),
+    },
+    ...globalState.policeAlerts,
+  ],
+});
+
+  pushLog("[SOCKET] SOS successfully created.");
+});
+
+socket.on("location-update", (data) => {
+  console.log("📍 Live Location:", data);
+
+  updateState({
+    liveLocation: {
+      latitude: data.latitude,
+      longitude: data.longitude,
+    },
+  });
+
+  pushLog(
+    `[GPS] Updated location: ${data.latitude}, ${data.longitude}`
+  );
+});
+
+socket.on("sos-resolved", (data) => {
+  console.log("✅ SOS Resolved:", data);
+
+  updateNested("systemStatus", {
+    isSosActive: false,
+    riskScore: 14,
+  });
+
+  pushLog("[SOCKET] SOS resolved.");
+});
+
+  // Listen for socket errors
+  socket.on("sos-error", (error) => {
+    console.error("❌ SOS Error:", error);
+  });
+
+  return () => {
+    socket.off("connect");
+    socket.off("disconnect");
+    socket.off("sos-created");
+    socket.off("sos-success");
+    socket.off("location-update");
+    socket.off("sos-resolved");
+    socket.off("sos-error");
+    socket.off("connect_error");
+
+    socket.disconnect();
+  };
+}, []);
 
   // PART C: DEMO CONTROL ACTIONS
 
@@ -172,8 +279,8 @@ export default function Dashboard({
     pushLog('[SIMULATION] Cab deviation countdown: 15 seconds to auto-SOS.');
 
     if (deviationTimerRef.current) {
-      clearInterval(deviationTimerRef.current);
-    }
+  clearInterval(deviationTimerRef.current);
+}
 
     let count = 15;
     deviationTimerRef.current = setInterval(() => {
@@ -316,82 +423,151 @@ export default function Dashboard({
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const response = await fetch("http://localhost:5001/api/sos", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            message: "Need immediate help",
-          }),
-        });
-
-        const result = await response.json();
-
-        console.log("SOS Response:", result);
-
-        if (!response.ok) {
-          alert(result.message || "SOS failed");
-          return;
-        }
-
-        updateNested("systemStatus", {
-          isSosActive: true,
-          riskScore: 95,
-        });
-
-        updateState({
-          activeAlertCount: globalState.activeAlertCount + 1,
-          policeAlerts: [
-            {
-              id: Date.now(),
-              message: `🚨 MANUAL SOS TRIGGERED BY ${profile.fullName.toUpperCase()}`,
-              status: "active",
-              timestamp: getFormattedTime(),
+        try {
+          const response = await fetch(`${API_URL}/api/sos`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
-            ...globalState.policeAlerts,
-          ],
-        });
+            body: JSON.stringify({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              message: "Need immediate help",
+            }),
+          });
 
-        pushLog("[SOS] Panic button activated.");
+          const result = await response.json();
+
+          if (!response.ok) {
+            alert(result.message || "SOS failed");
+            return;
+          }
+
+          const sosId = result.data.id;
+
+          localStorage.setItem("activeSOSId", sosId);
+          activeSOSIdRef.current = sosId;
+
+          if (watchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+          }
+
+          watchIdRef.current = navigator.geolocation.watchPosition(
+            async (position) => {
+              try {
+                await fetch(`${API_URL}/api/sos/${sosId}/location`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                  }),
+                });
+              } catch (err) {
+                console.error("GPS Update Failed:", err);
+              }
+            },
+            (err) => console.error(err),
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+        } catch (err) {
+          console.error("SOS Creation Failed:", err);
+          alert("Failed to create SOS.");
+        }
       },
-      (error) => {
-        console.error(error);
-        alert("Unable to access location.");
+      (err) => console.error(err),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
   } catch (err) {
     console.error(err);
-    alert("Something went wrong.");
   }
 };
-
   const handleTriggerSilentPolice = () => {
-    updateState({
-      activeAlertCount: globalState.activeAlertCount + 1,
-      policeAlerts: [
-        {
-          id: Date.now(),
-          message: `⚠️ SILENT POLICE ALERT Dispatched from ${profile.fullName.toUpperCase()}`,
-          status: 'active',
-          timestamp: getFormattedTime()
-        },
-        ...globalState.policeAlerts
-      ]
-    });
     pushLog('[SOS] Silent Police alert dispatched to Bhopal Command Center.');
   };
 
-  const handleResetPanic = () => {
-    updateNested('systemStatus', { isSosActive: false, riskScore: 14 });
-    updateNested('cabSimulation', { isDeviating: false, warningActive: false });
-    updateState({ workspaceTint: false });
-    pushLog('PANIC SOS disarmed. System back to stable monitor state.');
-    if (deviationTimerRef.current) clearInterval(deviationTimerRef.current);
-  };
+  const handleResetPanic = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const sosId = localStorage.getItem("activeSOSId");
+
+    if (!token || !sosId) {
+      alert("No active SOS found.");
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/api/sos/${sosId}/status`, {
+  method: "PATCH",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({
+    status: "RESOLVED",
+  }),
+});
+
+    const result = await response.json();
+
+    console.log("Resolve SOS:", result);
+
+    if (!response.ok) {
+      alert(result.message);
+      return;
+    }
+
+    localStorage.removeItem("activeSOSId");
+    activeSOSIdRef.current = null;
+
+    if (watchIdRef.current !== null) {
+  navigator.geolocation.clearWatch(watchIdRef.current);
+  watchIdRef.current = null;
+
+  pushLog("[GPS] Live tracking stopped.");
+}
+
+    updateNested("systemStatus", {
+      isSosActive: false,
+      riskScore: 14,
+    });
+
+    updateNested("cabSimulation", {
+      isDeviating: false,
+      warningActive: false,
+    });
+
+    updateState({
+      workspaceTint: false,
+    });
+
+    pushLog("SOS resolved successfully.");
+
+    updateState({
+  activeAlertCount: Math.max(
+    0,
+    globalState.activeAlertCount - 1
+  ),
+});
+
+    if (deviationTimerRef.current) {
+      clearInterval(deviationTimerRef.current);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const handleReportUnsafeZone = () => {
     const currentTime = getFormattedTime();
@@ -632,6 +808,13 @@ export default function Dashboard({
             <div className="text-[10px] text-slate-400 font-mono text-center border-t border-slate-200/50 pt-2 font-bold tracking-tight">
               Powered by Bhashini · Built for Bharat
             </div>
+
+            <button
+  onClick={onLogout}
+  className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg transition-colors"
+>
+  Logout
+</button>
           </div>
 
         </aside>
@@ -652,10 +835,19 @@ export default function Dashboard({
             </div>
 
             {/* Right-aligned Live Digital Clock */}
-            <div className="flex items-center space-x-2.5 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-slate-600 font-mono text-sm self-start sm:self-center">
-              <Clock className="h-4 w-4 text-[#6C3EFF] animate-pulse" />
-              <span className="font-bold tracking-widest">{timeStr}</span>
-            </div>
+            <div className="flex items-center gap-3">
+  <div className="flex items-center space-x-2.5 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-slate-600 font-mono text-sm">
+    <Clock className="h-4 w-4 text-[#6C3EFF] animate-pulse" />
+    <span className="font-bold tracking-widest">{timeStr}</span>
+  </div>
+
+  <button
+    onClick={onLogout}
+    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold"
+  >
+    Logout
+  </button>
+</div>
           </div>
 
           {/* Content Views Workspace */}
@@ -1361,14 +1553,15 @@ export default function Dashboard({
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FamilyTrackingView 
-                    profile={profile}
-                    onFamilyCallUser={handleFamilyCallUser}
-                    onFamilySendMessage={handleFamilySendMessage}
-                    onFamilyEscalate={handleFamilyEscalate}
-                    timeStr={timeStr}
-                    riskScore={globalState.systemStatus.riskScore}
-                  />
+                  <FamilyTrackingView
+  profile={profile}
+  liveLocation={globalState.liveLocation}
+  onFamilyCallUser={handleFamilyCallUser}
+  onFamilySendMessage={handleFamilySendMessage}
+  onFamilyEscalate={handleFamilyEscalate}
+  timeStr={timeStr}
+  riskScore={globalState.systemStatus.riskScore}
+/>
                 </motion.div>
               )}
 
@@ -1381,12 +1574,13 @@ export default function Dashboard({
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <PoliceDispatchView 
-                    activeAlertsCount={activeAlertsCount}
-                    policeAlerts={globalState.policeAlerts}
-                    onAcknowledgeAlert={handleAcknowledgeAlert}
-                    onDispatchUnit={handleDispatchUnit}
-                  />
+                  <PoliceDispatchView
+  activeAlertsCount={activeAlertsCount}
+  policeAlerts={globalState.policeAlerts}
+  liveLocation={globalState.liveLocation}
+  onAcknowledgeAlert={handleAcknowledgeAlert}
+  onDispatchUnit={handleDispatchUnit}
+/>
                 </motion.div>
               )}
 

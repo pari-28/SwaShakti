@@ -41,9 +41,13 @@ export const saveFcmToken = async (
   res: Response
 ) => {
   try {
+   
+
     const { token } = req.body;
 
     if (!req.userId) {
+      
+
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
@@ -55,10 +59,42 @@ export const saveFcmToken = async (
       token
     );
 
+   
+
     res.status(200).json({
       success: true,
       data: result,
     });
+
+  } catch (error: any) {
+    console.error(error);
+
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getCurrentUser = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await authService.getCurrentUser(req.userId);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+
   } catch (error: any) {
     res.status(400).json({
       success: false,

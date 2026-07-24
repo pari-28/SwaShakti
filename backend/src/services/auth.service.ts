@@ -95,8 +95,30 @@ export class AuthService {
   };
 }
 
+async getCurrentUser(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      emergencyContacts: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const { password: _, ...userWithoutPassword } = user;
+
+  return userWithoutPassword;
+}
+
 async saveFcmToken(userId: string, token: string) {
-  await prisma.user.update({
+
+
+
+  const user = await prisma.user.update({
     where: {
       id: userId,
     },
@@ -105,8 +127,10 @@ async saveFcmToken(userId: string, token: string) {
     },
   });
 
+
   return {
     message: "FCM token saved successfully",
   };
 }
+
 }

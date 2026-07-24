@@ -2,6 +2,7 @@ import { ApiError } from "../errors/ApiError";
 import prisma from "../config/prisma";
 import { SOSStatus } from "@prisma/client";
 import NotificationService from "./notification.service";
+import { getIO } from "../config/socket";
 
 class SOSService {
   static async create(
@@ -48,27 +49,37 @@ const user = await prisma.user.findUnique({
   },
 });
 
-console.log("User found:", user?.email);
-console.log("FCM Token:", user?.fcmToken);
 
 if (user?.fcmToken) {
-    if (user?.fcmToken) {
   console.log("Sending notification...");
-  try {
-  const response = await NotificationService.sendPushNotification(
-    user.fcmToken,
-    "🚨 SOS Activated",
-    "Emergency detected. Help is being notified."
-  );
 
-  console.log("FCM Response:", response);
-} catch (error) {
-  console.error("FCM Error:", error);
+  try {
+    const response = await NotificationService.sendPushNotification(
+      user.fcmToken,
+      "🚨 SOS Activated",
+      "Emergency detected. Help is being notified."
+    );
+
+    console.log("FCM Response:", response);
+  } catch (error) {
+    console.error("FCM Error:", error);
+  }
 }
+
+// Broadcast to connected clients
+try {
+  const io = getIO();
+
+  io.to(`family:${userId}`).emit("sos-created", sos);
+  io.to(`user:${userId}`).emit("sos-success", sos);
+
+
+} catch (error) {
+  console.error("Socket broadcast failed:", error);
 }
 
 return sos;
-  }
+}
 
     static async getActive(userId: string) {
     
@@ -120,15 +131,28 @@ return sos;
             throw new ApiError(404, "Active SOS not found.");
         }
 
-        return prisma.sOSAlert.update({
-            where: {
-            id: sosId,
-            },
-            data: {
-            latitude,
-            longitude,
-            },
-        });
+        const updatedSOS = await prisma.sOSAlert.update({
+    where: {
+        id: sosId,
+    },
+    data: {
+        latitude,
+        longitude,
+    },
+});
+
+try {
+    const io = getIO();
+
+    io.to(`family:${userId}`).emit("location-update", updatedSOS);
+    io.to(`user:${userId}`).emit("location-update", updatedSOS);
+
+    console.log("📍 Live location broadcasted");
+} catch (error) {
+    console.error("Socket broadcast failed:", error);
+}
+
+return updatedSOS;
     }
 
     static async updateStatus(
@@ -148,15 +172,28 @@ return sos;
             throw new ApiError(404, "Active SOS not found.");
         }
 
-        return prisma.sOSAlert.update({
-            where: {
-            id: sosId,
-            },
-            data: {
-            status,
-            resolvedAt: new Date(),
-            },
-        });
+        const updatedSOS = await prisma.sOSAlert.update({
+    where: {
+        id: sosId,
+    },
+    data: {
+        status,
+        resolvedAt: new Date(),
+    },
+});
+
+try {
+    const io = getIO();
+
+    io.to(`family:${userId}`).emit("sos-resolved", updatedSOS);
+    io.to(`user:${userId}`).emit("sos-resolved", updatedSOS);
+
+    console.log("✅ SOS resolved broadcasted");
+} catch (error) {
+    console.error("Socket broadcast failed:", error);
+}
+
+return updatedSOS;
     }
 
     static async getHistory(userId: string) {

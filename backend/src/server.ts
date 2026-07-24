@@ -7,6 +7,8 @@ import emergencyRoutes from "./routes/emergency.routes";
 import sosRoutes from "./routes/sos.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import "./config/firebase";
+import http from "http";
+import { initializeSocket } from "./config/socket";
 
 const app = express();
 
@@ -35,11 +37,16 @@ app.use(errorHandler);
 // Start Server
 const PORT = process.env.PORT || 5001;
 
-const server = app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO
+initializeSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-server.on("error", (err) => {
+httpServer.on("error", (err) => {
   console.error("Server error:", err);
 });
 

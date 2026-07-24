@@ -14,17 +14,6 @@ const router = Router();
 // 👇 Add this line
 router.get("/active", authenticate, SOSController.getActive);
 
-router.patch(
-  "/:id/location",
-  authenticate,
-  SOSController.updateLocation
-);
-
-router.patch(
-  "/:id/status",
-  authenticate,
-  SOSController.updateStatus
-);
 
 router.post(
   "/",

@@ -4,10 +4,13 @@ import SetupScreen from './components/SetupScreen';
 import Dashboard from './components/Dashboard';
 import { UserProfile } from './types';
 import { requestNotificationPermission } from "./utils/fcm";
+import LoginScreen from "./components/LoginScreen";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const [globalState, setGlobalState] = useState<any>({
-    appState: 'landing',           // 'landing' | 'setup' | 'dashboard'
+    appState: 'landing',           // landing | login | setup | dashboard
     activeView: 'user',            // 'user' | 'community' | 'family' | 'police' | 'analytics'
     userProfile: { name: '', phone: '', bloodGroup: '', city: '' },
     emergencyContacts: [
@@ -28,12 +31,18 @@ export default function App() {
       completed: false
     },
     audioMonitor: {
-      status: 'listening',
-      detectedIntent: '',
-      confidence: 0,
-      waveformAlert: false
-    },
-    evidenceVault: [
+  status: 'listening',
+  detectedIntent: '',
+  confidence: 0,
+  waveformAlert: false
+},
+
+liveLocation: {
+  latitude: 0,
+  longitude: 0,
+},
+
+evidenceVault: [
       { id: '1', file: 'SOS_Audio_01.mp3', status: 'Encrypted', transcript: 'Please leave me alone', confidence: '98%' },
       { id: '2', file: 'Video_Clip_02.mp4', status: 'Encrypted', transcript: 'Motion detected, 2 persons', confidence: '94%' },
       { id: '3', file: 'Location_Log_03.json', status: 'Encrypted', transcript: 'Route deviation: 520m', confidence: '99%' }
@@ -136,7 +145,7 @@ export default function App() {
   // Handle successful safety registration
   const handleRegisterProfile = async (userProfile: UserProfile) => {
     try {
-  const response = await fetch("http://localhost:5001/api/auth/register", {
+  const response = await fetch(`${API_URL}/api/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -172,22 +181,24 @@ export default function App() {
 
 localStorage.setItem("token", jwtToken);
 
+localStorage.setItem(
+  "user",
+  JSON.stringify(result.data.user)
+);
+
 const fcmToken = await requestNotificationPermission();
 
 if (fcmToken) {
-  const saveTokenResponse = await fetch(
-    "http://localhost:5001/api/auth/fcm-token",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${jwtToken}`,
-      },
-      body: JSON.stringify({
-        token: fcmToken,
-      }),
-    }
-  );
+  const saveTokenResponse = await fetch(`${API_URL}/api/auth/fcm-token`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${jwtToken}`,
+  },
+  body: JSON.stringify({
+    token: fcmToken,
+  }),
+});
 
   if (!saveTokenResponse.ok) {
     console.error("Failed to save FCM token");
@@ -221,6 +232,120 @@ if (fcmToken) {
 }
   };
 
+  const handleLogin = async (
+  email: string,
+  password: string
+) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/auth/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":"application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      alert(result.message);
+      return;
+    }
+
+    const jwtToken = result.data.token;
+
+    localStorage.setItem(
+      "token",
+      jwtToken
+    );
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(result.data.user)
+    );
+
+    updateState({
+      appState:"dashboard",
+
+      userProfile:{
+        name:result.data.user.fullName,
+        phone:result.data.user.phone,
+      }
+    });
+
+  } catch(err){
+
+    console.error(err);
+
+    alert("Login failed.");
+
+  }
+};
+
+useEffect(() => {
+  const checkLogin = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) return;
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/auth/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        return;
+      }
+
+      updateState({
+        appState: "dashboard",
+        userProfile: {
+          name: result.data.fullName,
+          phone: result.data.phone,
+          bloodGroup: result.data.bloodGroup || "",
+          city: result.data.city || "",
+        },
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  checkLogin();
+
+}, []);
+
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  updateState({
+    appState: "login",
+    userProfile: {
+      name: "",
+      phone: "",
+      bloodGroup: "",
+      city: "",
+    },
+  });
+};
+
   // If we launch straight to dashboard or need standard demo data populated
   useEffect(() => {
     if (globalState.appState === 'dashboard' && !globalState.userProfile.name) {
@@ -250,7 +375,13 @@ if (fcmToken) {
   return (
     <div className="min-h-screen">
       {globalState.appState === 'landing' && (
-        <Homepage onGetStarted={() => updateState({ appState: 'setup' })} />
+        <Homepage
+    onGetStarted={() =>
+        updateState({
+            appState:"login"
+        })
+    }
+/>
       )}
 
       {globalState.appState === 'setup' && (
@@ -259,6 +390,16 @@ if (fcmToken) {
           onSubmit={handleRegisterProfile} 
         />
       )}
+      {globalState.appState === "login" && (
+  <LoginScreen
+    onLogin={handleLogin}
+    onRegister={() =>
+      updateState({
+        appState: "setup",
+      })
+    }
+  />
+)}
 
       {globalState.appState === 'dashboard' && (
         <Dashboard 
@@ -284,6 +425,7 @@ if (fcmToken) {
           }}
           onReset={() => updateState({ appState: 'setup' })}
           onGoHome={() => updateState({ appState: 'landing' })}
+          onLogout={handleLogout}
         />
       )}
     </div>
