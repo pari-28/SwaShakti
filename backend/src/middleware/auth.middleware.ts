@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { verifyToken } from "../utils/jwt";
 
 interface JwtPayload {
   userId: string;
@@ -17,20 +18,22 @@ export const authenticate = (
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Access denied. No token provided.",
-      });
-    }
+console.log("Authorization Header:", authHeader);
 
-    const token = authHeader.split(" ")[1];
+if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  return res.status(401).json({
+    success: false,
+    message: "Access denied. No token provided.",
+  });
+}
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as JwtPayload;
+const token = authHeader.split(" ")[1];
 
+console.log("Extracted Token:", token);
+
+const decoded = verifyToken(token) as JwtPayload;
+
+console.log("Decoded:", decoded);
     req.userId = decoded.userId;
 
     next();

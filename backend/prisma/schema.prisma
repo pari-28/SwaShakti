@@ -31,16 +31,18 @@ model User {
 }
 
 model EmergencyContact {
-  id       String @id @default(uuid())
-  name     String
-  phone    String
-  relation String
+  id            String   @id @default(uuid())
+  name          String
+  phone         String
+  relation      String
+  isPrimary     Boolean  @default(false)
+  countryCode   String   @default("+91")
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model SOSAlert {

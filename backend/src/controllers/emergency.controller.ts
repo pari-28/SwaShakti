@@ -10,9 +10,10 @@ export const createEmergencyContact = async (
     const contact = await EmergencyService.create(req.userId!, req.body);
 
     res.status(201).json({
-      success: true,
-      data: contact,
-    });
+  success: true,
+  message: "Emergency contact created successfully.",
+  data: contact,
+});
     } catch (error: any) {
     console.error(error);
 
@@ -76,8 +77,33 @@ export const deleteEmergencyContact = async (
     );
 
     res.json({
+  success: true,
+  message: "Emergency contact deleted successfully.",
+  data: result,
+});
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+export const setPrimaryContact = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const contact = await EmergencyService.setPrimary(
+      req.userId!,
+      req.params.id
+    );
+
+    res.json({
       success: true,
-      data: result,
+      message: "Primary contact updated successfully.",
+      data: contact,
     });
   } catch (error: any) {
     res.status(400).json({
