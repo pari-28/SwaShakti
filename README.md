@@ -25,9 +25,6 @@ Built as part of **Build for Good 2026**, SwaShakti combines modern web technolo
 ### 🚀 Frontend
 https://swa-shakti-rho.vercel.app
 
-### ⚙️ Backend API
-https://swa-shakti.onrender.com
-
 ### ❤️ Health Check
 https://swa-shakti.onrender.com/health
 
