@@ -63,6 +63,21 @@ class SOSController {
     }
   );
 
+  static resend = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const sos = await SOSService.resend(
+      req.userId!,
+      req.params.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Emergency alert re-sent successfully.",
+      data: sos,
+    });
+  }
+);
+
   static getHistory = asyncHandler(
     async (req: AuthRequest, res: Response) => {
       const history = await SOSService.getHistory(req.userId!);
@@ -74,5 +89,7 @@ class SOSController {
     }
   );
 }
+
+
 
 export default SOSController;

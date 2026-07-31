@@ -37,6 +37,9 @@ import PoliceDispatchView from './PoliceDispatchView';
 import SwaShaktiAnalyticsView from './SwaShaktiAnalyticsView';
 import { useLocation } from "../hooks/useLocation";
 import LiveMap from "./LiveMap";
+import SOSCountdown from "./SOSCountdown";
+import EmergencyContacts from "./EmergencyContacts";
+
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -62,40 +65,51 @@ export default function Dashboard({
   onLogout
 }: DashboardProps) {
   // Navigation active tab computed from global activeView
-  const activeTab = globalState.activeView === 'user' ? 'User Safety Desk'
-                  : globalState.activeView === 'community' ? 'Community & Evidence AI'
-                  : globalState.activeView === 'family' ? 'Family Live Tracking'
-                  : globalState.activeView === 'police' ? 'Police Dispatch View'
-                  : 'SwaShakti Analytics';
+  const activeTab =
+  globalState.activeView === "user"
+    ? "User Safety Desk"
+    : globalState.activeView === "community"
+    ? "Community & Evidence AI"
+    : globalState.activeView === "family"
+    ? "Family Live Tracking"
+    : globalState.activeView === "police"
+    ? "Police Dispatch View"
+    : globalState.activeView === "contacts"
+    ? "Emergency Contacts"
+    : "SwaShakti Analytics";
 
   const setActiveTab = (tabName: string) => {
     const viewMap: any = {
-      'User Safety Desk': 'user',
-      'Community & Evidence AI': 'community',
-      'Family Live Tracking': 'family',
-      'Police Dispatch View': 'police',
-      'SwaShakti Analytics': 'analytics'
-    };
+  "User Safety Desk": "user",
+  "Community & Evidence AI": "community",
+  "Family Live Tracking": "family",
+  "Police Dispatch View": "police",
+  "Emergency Contacts": "contacts",
+  "SwaShakti Analytics": "analytics",
+};
     updateState({ activeView: viewMap[tabName] || 'user' });
   };
 
   const tabs = [
-    { name: 'User Safety Desk', icon: Shield },
-    { name: 'Community & Evidence AI', icon: Compass },
-    { name: 'Family Live Tracking', icon: Radio },
-    { name: 'Police Dispatch View', icon: ShieldAlert },
-    { name: 'SwaShakti Analytics', icon: Activity },
-  ];
+  { name: "User Safety Desk", icon: Shield },
+  { name: "Community & Evidence AI", icon: Compass },
+  { name: "Family Live Tracking", icon: Radio },
+  { name: "Police Dispatch View", icon: ShieldAlert },
+  { name: "Emergency Contacts", icon: Phone },
+  { name: "SwaShakti Analytics", icon: Activity },
+];
 
   // Map state derived variables from globalState
   const reportsCount = globalState.communityHazards.length + 39;
   const panicActive = globalState.systemStatus.isSosActive;
   const activeAlertsCount = globalState.activeAlertCount;
-  const evidenceItems = globalState.evidenceVault;
+ 
   const responseTime = globalState.systemStatus.responseTime;
 
   // Local clock state
   const [timeStr, setTimeStr] = useState('00:00:00');
+
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
 
   // Interactive UI toggles
   const [safeHavenLocked, setSafeHavenLocked] = useState(false);
@@ -104,6 +118,12 @@ export default function Dashboard({
   const [demoPanelExpanded, setDemoPanelExpanded] = useState(true);
   const [aiDecisionExpanded, setAiDecisionExpanded] = useState(false);
   const [showAddLanguageDropdown, setShowAddLanguageDropdown] = useState(false);
+
+  const [showCountdown, setShowCountdown] = useState(false);
+
+  const [showActiveSOSModal, setShowActiveSOSModal] = useState(false);
+const [holdProgress, setHoldProgress] = useState(0);
+const holdTimer = useRef<number | null>(null);
 
   // Local monitored languages (for speech UI demo)
   const [monitoredLanguages, setMonitoredLanguages] = useState([
@@ -119,6 +139,7 @@ export default function Dashboard({
   const activeSOSIdRef = useRef<string | null>(null);
 
   const { location, error } = useLocation();
+
 
   // Helper to format current time as HH:MM:SS
   const getFormattedTime = () => {
@@ -148,6 +169,10 @@ export default function Dashboard({
     }
   }, [globalState.systemLogs, globalState.isTerminalOpen]);
 
+  useEffect(() => {
+  fetchEvidence();
+}, []);
+
   // Clean up interval on unmount
   useEffect(() => {
   const savedSOS = localStorage.getItem("activeSOSId");
@@ -166,6 +191,16 @@ export default function Dashboard({
 
   socket.connect();
 
+  socket.off("connect");
+socket.off("disconnect");
+socket.off("connect_error");
+socket.off("sos-created");
+socket.off("sos-success");
+socket.off("location-update");
+socket.off("sos-resent");
+socket.off("sos-resolved");
+socket.off("sos-error");
+
   socket.on("connect", () => {
     console.log("🟢 Socket Connected:", socket.id);
   });
@@ -180,9 +215,16 @@ export default function Dashboard({
 
   // Listen when backend broadcasts a new SOS
   socket.on("sos-created", (data) => {
-  console.log("🚨 New SOS:", data);
+  console.log("========== SOCKET PAYLOAD ==========");
+console.log(JSON.stringify(data, null, 2));
+console.log("===================================");
 
-  pushLog(`[SOCKET] New SOS received: ${data.id}`);
+  pushLog(`[SOCKET] New SOS received: ${data.sos.id}`);
+
+  updateState({
+     activeSOS: data.sos,
+  emergencyContacts: data.contacts,
+});
 });
 
   // Listen when backend acknowledges an SOS
@@ -225,6 +267,20 @@ socket.on("location-update", (data) => {
   );
 });
 
+
+// 👇 ADD THIS
+socket.on("sos-resent", (data) => {
+  console.log("🚨 SOS Re-sent:", data);
+
+  if (data.contacts) {
+    updateState({
+      emergencyContacts: data.contacts,
+    });
+  }
+
+  pushLog("[SOCKET] Emergency alert re-sent.");
+});
+
 socket.on("sos-resolved", (data) => {
   console.log("✅ SOS Resolved:", data);
 
@@ -235,6 +291,7 @@ socket.on("sos-resolved", (data) => {
 
   pushLog("[SOCKET] SOS resolved.");
 });
+
 
   // Listen for socket errors
   socket.on("sos-error", (error) => {
@@ -247,6 +304,7 @@ socket.on("sos-resolved", (data) => {
     socket.off("sos-created");
     socket.off("sos-success");
     socket.off("location-update");
+    socket.off("sos-resent");
     socket.off("sos-resolved");
     socket.off("sos-error");
     socket.off("connect_error");
@@ -417,6 +475,8 @@ socket.on("sos-resolved", (data) => {
   };
 
   const handleTriggerPanicSos = async () => {
+    console.log("🚨 handleTriggerPanicSos called", new Date().toISOString());
+
   try {
     const token = localStorage.getItem("token");
 
@@ -425,82 +485,193 @@ socket.on("sos-resolved", (data) => {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const response = await fetch(`${API_URL}/api/sos`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              message: "Need immediate help",
-            }),
-          });
+    console.log("Current location:", location);
 
-          const result = await response.json();
+if (!location) {
+  alert("Waiting for GPS...");
+  return;
+}
 
-          if (!response.ok) {
-            alert(result.message || "SOS failed");
-            return;
-          }
+console.log("Latitude:", location.latitude);
+console.log("Longitude:", location.longitude);
 
-          const sosId = result.data.id;
+const response = await fetch(`${API_URL}/api/sos`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({
+    latitude: location.latitude,
+    longitude: location.longitude,
+    message: "Need immediate help",
+  }),
+});
 
-          localStorage.setItem("activeSOSId", sosId);
-          activeSOSIdRef.current = sosId;
+const result = await response.json();
+console.log("FULL API RESULT:");
+console.log(JSON.stringify(result, null, 2));
+console.log("SOS API Response:", response.status, result);
 
-          if (watchIdRef.current !== null) {
-            navigator.geolocation.clearWatch(watchIdRef.current);
-          }
-
-          watchIdRef.current = navigator.geolocation.watchPosition(
-            async (position) => {
-              try {
-                await fetch(`${API_URL}/api/sos/${sosId}/location`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                  }),
-                });
-              } catch (err) {
-                console.error("GPS Update Failed:", err);
-              }
-            },
-            (err) => console.error(err),
-            {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0,
-            }
-          );
-        } catch (err) {
-          console.error("SOS Creation Failed:", err);
-          alert("Failed to create SOS.");
-        }
+if (response.status === 409) {
+  try {
+    const activeResponse = await fetch(`${API_URL}/api/sos/active`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-      (err) => console.error(err),
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+    });
+
+    const activeResult = await activeResponse.json();
+
+    console.log("Active SOS:", activeResult);
+
+    if (activeResponse.ok && activeResult.data?.id) {
+      localStorage.setItem("activeSOSId", activeResult.data.id);
+      activeSOSIdRef.current = activeResult.data.id;
+    }
+
+    setShowActiveSOSModal(true);
+    return;
+  } catch (err) {
+    console.error("Failed to fetch active SOS:", err);
+    alert("Unable to restore active SOS.");
+    return;
+  }
+}
+
+if (!response.ok) {
+  alert(result.message);
+  return;
+}
+
+const sosId = result.data.sos.id;
+
+localStorage.setItem("activeSOSId", sosId);
+console.log("Saved activeSOSId:", sosId);
+activeSOSIdRef.current = sosId;
+watchIdRef.current = navigator.geolocation.watchPosition(
+  async (position) => {
+
+    if (!activeSOSIdRef.current) {
+        return;
+    }
+
+    const sosId = activeSOSIdRef.current;
+
+    try {
+
+        await fetch(
+            `${API_URL}/api/sos/${sosId}/location`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }),
+        }
+      );
+    } catch (err) {
+      console.error("Location update failed:", err);
+    }
+  },
+  (err) => {
+    console.error("Watch Position Error:", err);
+  },
+  {
+    enableHighAccuracy: true,
+    maximumAge: 5000,
+    timeout: 30000,
+  }
+);
+       
+  } catch (err) {
+    console.error(err);
+  }
+};
+const handleCountdownCancel = () => {
+  setShowCountdown(false);
+};
+
+const handleCountdownComplete = async () => {
+  setShowCountdown(false);
+  await handleTriggerPanicSos();
+};
+const handleResendAlert = async () => {
+  const token = localStorage.getItem("token");
+
+  if (!token || !activeSOSIdRef.current) return;
+
+  
+
+  try {
+    const response = await fetch(
+  `${API_URL}/api/sos/${activeSOSIdRef.current}/resend`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
+
+const result = await response.json();
+
+if (!response.ok) {
+  alert(result.message || "Failed to resend emergency alert.");
+  return;
+}
+
+pushLog("🚨 Emergency alert re-sent.");
+setShowActiveSOSModal(false);
   } catch (err) {
     console.error(err);
   }
 };
   const handleTriggerSilentPolice = () => {
-    pushLog('[SOS] Silent Police alert dispatched to Bhopal Command Center.');
-  };
+  pushLog("[SOS] Silent Police alert dispatched.");
+};
+    
+
+
+
+const startHoldResolve = async () => {
+  let progress = 0;
+
+  holdTimer.current = window.setInterval(async () => {
+    progress += 5;
+
+    setHoldProgress(progress);
+
+    if (progress >= 100) {
+  clearInterval(holdTimer.current!);
+
+  const confirmResolve = window.confirm(
+    "Are you sure you're safe? This will stop emergency tracking."
+  );
+
+  if (confirmResolve) {
+    await handleResetPanic();
+    setShowActiveSOSModal(false);
+  }
+
+  setHoldProgress(0);
+}
+  }, 150);
+};
+
+const cancelHoldResolve = () => {
+  if (holdTimer.current) {
+    clearInterval(holdTimer.current);
+  }
+
+  setHoldProgress(0);
+};
+  
 
   const handleResetPanic = async () => {
   try {
@@ -532,55 +703,63 @@ socket.on("sos-resolved", (data) => {
       return;
     }
 
-    localStorage.removeItem("activeSOSId");
-    activeSOSIdRef.current = null;
-
-    if (watchIdRef.current !== null) {
+    // Stop GPS tracking FIRST
+if (watchIdRef.current !== null) {
   navigator.geolocation.clearWatch(watchIdRef.current);
   watchIdRef.current = null;
 
   pushLog("[GPS] Live tracking stopped.");
 }
 
-    updateNested("systemStatus", {
-      isSosActive: false,
-      riskScore: 14,
-    });
+// THEN clear active SOS
+localStorage.removeItem("activeSOSId");
+activeSOSIdRef.current = null;
 
-    updateNested("cabSimulation", {
-      isDeviating: false,
-      warningActive: false,
-    });
+updateNested("systemStatus", {
+  isSosActive: false,
+  riskScore: 14,
+});
 
-    updateState({
-      workspaceTint: false,
-    });
+updateNested("cabSimulation", {
+  isDeviating: false,
+  warningActive: false,
+});
 
-    pushLog("SOS resolved successfully.");
-
-    updateState({
+updateState({
+  workspaceTint: false,
   activeAlertCount: Math.max(
     0,
     globalState.activeAlertCount - 1
   ),
 });
 
-    if (deviationTimerRef.current) {
-      clearInterval(deviationTimerRef.current);
-    }
-  } catch (err) {
-    console.error(err);
-  }
-};
+pushLog("SOS resolved successfully.");
 
-  const handleReportUnsafeZone = () => {
-    const currentTime = getFormattedTime();
-    const newHazard = { id: Date.now(), label: 'Community Zone — ' + currentTime, risk: 'danger' as const };
-    updateState({
-      communityHazards: [...globalState.communityHazards, newHazard]
-    });
-    pushLog(`[COMMUNITY AI] New crowdsourced unsafe zone reported at ${currentTime}.`);
+if (deviationTimerRef.current) {
+  clearInterval(deviationTimerRef.current);
+}
+
+} catch (err) {
+  console.error(err);
+}
+};
+    const handleReportUnsafeZone = () => {
+  const currentTime = getFormattedTime();
+
+  const newHazard = {
+    id: Date.now(),
+    label: "Community Zone — " + currentTime,
+    risk: "danger" as const,
   };
+
+  updateState({
+    communityHazards: [...globalState.communityHazards, newHazard],
+  });
+
+  pushLog(
+    `[COMMUNITY AI] New crowdsourced unsafe zone reported at ${currentTime}.`
+  );
+};
 
   const handleFamilyCallUser = () => {
     pushLog(`[FAMILY CALL] Dialing secure, encrypted VoIP voice link to ${profile.fullName}...`);
@@ -609,6 +788,52 @@ socket.on("sos-resolved", (data) => {
     });
     pushLog(`[POLICE DISPATCH] Alert #${id} acknowledged in command room.`);
   };
+
+  const fetchEvidence = async () => {
+  const token = localStorage.getItem("token");
+  const sosId = localStorage.getItem("activeSOSId");
+
+  console.log("Fetching evidence for SOS:", sosId);
+
+  if (!sosId) return;
+
+  const response = await fetch(
+    `${API_URL}/api/evidence/${sosId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const result = await response.json();
+
+  console.log("Evidence API Response:", result);
+
+  if (response.ok) {
+    const formatted = result.data.map((item: any) => {
+  const cleanName = item.fileName
+    .normalize("NFKC")
+    .replace(/\u202F/g, " ")
+    .replace(/â¯/g, " ");
+
+  return {
+    id: item.id,
+    name: cleanName,
+    file: cleanName,
+    status: "Uploaded",
+    transcript: "Secure evidence stored",
+    confidence: "100%",
+  };
+});
+
+    console.log("Formatted Evidence:", formatted);
+
+    setEvidenceItems(formatted);
+
+    console.log("State being set:", formatted);
+  }
+};
 
   // Format logs for rendering in sliding drawer
   const logs = globalState.systemLogs.map((log: any) => `[${log.time}] ${log.message}`);
@@ -724,12 +949,7 @@ socket.on("sos-resolved", (data) => {
         <div className="bg-red-600 text-white font-bold text-center py-2.5 px-4 text-xs sm:text-sm flex items-center justify-center gap-2 animate-pulse shrink-0 z-30 shadow-lg">
           <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
           <span>🚨 SOS ACTIVE — Contacts Notified — Location Shared</span>
-          <button 
-            onClick={handleResetPanic}
-            className="ml-4 bg-white text-red-600 px-2.5 py-0.5 rounded-lg text-xs font-bold hover:bg-slate-100 transition-colors"
-          >
-            Cancel Alert
-          </button>
+          
         </div>
       )}
 
@@ -1183,9 +1403,18 @@ socket.on("sos-resolved", (data) => {
                             </button>
                             <button
                               onClick={() => {
-                                updateNested('cabSimulation', { completed: true, countdown: 0, isDeviating: false });
-                                updateNested('systemStatus', { isSosActive: true, riskScore: 95 });
-                                handleTriggerPanicSos();
+                                updateNested("cabSimulation", {
+                                  completed: true,
+                                  countdown: 0,
+                                  isDeviating: false,
+                                });
+
+                                updateNested("systemStatus", {
+                                  isSosActive: true,
+                                  riskScore: 95,
+                                });
+
+                                setShowCountdown(true);
                               }}
                               className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                             >
@@ -1397,7 +1626,7 @@ socket.on("sos-resolved", (data) => {
                     <div className="absolute inset-0 bg-rose-600/20 rounded-full animate-pulse-red" />
                     <button
                       id="btn-panic-sos-trigger"
-                      onClick={handleTriggerPanicSos}
+                      onClick={() => setShowCountdown(true)}
                       className="w-28 h-28 rounded-full bg-red-600 hover:bg-red-700 text-white font-black tracking-widest text-lg flex flex-col items-center justify-center shadow-lg transform active:scale-95 transition-all duration-300 cursor-pointer z-10 animate-sos-shadow-pulse"
                     >
                       <Shield className="h-7 w-7 text-white mb-1 animate-bounce" />
@@ -1439,13 +1668,14 @@ socket.on("sos-resolved", (data) => {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <CommunityEvidenceAI 
-                    reportsCount={reportsCount}
-                    heatmap={heatmap}
-                    onReportUnsafeZone={handleReportUnsafeZone}
-                    evidenceItems={evidenceItems}
-                    communityHazards={globalState.communityHazards}
-                  />
+                  <CommunityEvidenceAI
+  reportsCount={reportsCount}
+  heatmap={heatmap}
+  onReportUnsafeZone={handleReportUnsafeZone}
+  evidenceItems={evidenceItems}
+  communityHazards={globalState.communityHazards}
+  fetchEvidence={fetchEvidence}
+/>
                 </motion.div>
               )}
 
@@ -1458,9 +1688,10 @@ socket.on("sos-resolved", (data) => {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FamilyTrackingView
+                 <FamilyTrackingView
   profile={profile}
   liveLocation={globalState.liveLocation}
+  emergencyContacts={globalState.emergencyContacts}
   onFamilyCallUser={handleFamilyCallUser}
   onFamilySendMessage={handleFamilySendMessage}
   onFamilyEscalate={handleFamilyEscalate}
@@ -1469,6 +1700,19 @@ socket.on("sos-resolved", (data) => {
 />
                 </motion.div>
               )}
+
+              {/* VIEW: Emergency Contacts */}
+{activeTab === "Emergency Contacts" && (
+  <motion.div
+    key="Emergency Contacts"
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -8 }}
+    transition={{ duration: 0.3 }}
+  >
+    <EmergencyContacts />
+  </motion.div>
+)}
 
               {/* VIEW 4: Police Dispatch View */}
               {activeTab === 'Police Dispatch View' && (
@@ -1514,6 +1758,84 @@ socket.on("sos-resolved", (data) => {
               <span>Satellites Linked: 5 Active</span>
             </div>
           </footer>
+
+{showActiveSOSModal && (
+<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+
+<div className="bg-white rounded-3xl w-[420px] p-8 shadow-2xl">
+
+<h2 className="text-2xl font-bold text-red-600">
+🚨 Emergency Already Active
+</h2>
+
+<p className="mt-4 text-gray-600">
+Your emergency is already active.
+Your live location is still being shared.
+</p>
+
+<div className="mt-6 space-y-3">
+
+<div className="bg-green-50 rounded-xl p-3">
+📍 Live Tracking : ON
+</div>
+
+<div className="bg-green-50 rounded-xl p-3">
+👮 Police Notified
+</div>
+
+<div className="bg-green-50 rounded-xl p-3">
+👨‍👩‍👧 Family Notified
+</div>
+
+</div>
+
+<button
+  onClick={handleResendAlert}
+  className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold"
+>
+  🔔 Re-send Emergency Alert
+</button>
+
+<div className="mt-6">
+
+<p className="text-center text-sm text-gray-500 mb-3">
+Long press if you are safe
+</p>
+
+<button
+onMouseDown={startHoldResolve}
+onMouseUp={cancelHoldResolve}
+onMouseLeave={cancelHoldResolve}
+onTouchStart={startHoldResolve}
+onTouchEnd={cancelHoldResolve}
+className="w-full bg-green-600 text-white rounded-xl py-4 relative overflow-hidden"
+>
+
+<div
+className="absolute left-0 top-0 bottom-0 bg-green-800 transition-all"
+style={{
+width: `${holdProgress}%`,
+}}
+/>
+
+<span className="relative z-10">
+Press & Hold to Resolve
+</span>
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+)}
+          {showCountdown && (
+  <SOSCountdown
+    onComplete={handleCountdownComplete}
+    onCancel={handleCountdownCancel}
+  />
+)}
 
         </main>
 
@@ -1658,8 +1980,8 @@ socket.on("sos-resolved", (data) => {
             <span className="text-xs font-bold font-display tracking-tight">Open Demo Panel</span>
           </button>
         )}
-      </div>
-
-    </div>
+            </div>
+              
+         </div>
   );
 }

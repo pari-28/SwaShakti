@@ -35,14 +35,12 @@ socket.data.userId = decoded.userId;
   const userId = socket.data.userId;
 
   socket.join(`user:${userId}`);
-  socket.join(`family:${userId}`);
 
   registerSOSSocketEvents(io, socket);
 
   console.log(`🟢 User ${userId} connected`);
   console.log(`Socket ID: ${socket.id}`);
   console.log(`Joined room: user:${userId}`);
-  console.log(`Joined room: family:${userId}`);
 
   socket.on("disconnect", () => {
     console.log(`🔴 User ${userId} disconnected`);

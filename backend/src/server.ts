@@ -1,3 +1,11 @@
+import "dotenv/config";
+
+console.log({
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "Loaded" : "Missing",
+});
+
 import express from "express";
 import cors from "cors";
 import homeRoutes from "./routes/home.routes";
@@ -9,6 +17,8 @@ import { errorHandler } from "./middleware/error.middleware";
 import "./config/firebase";
 import http from "http";
 import { initializeSocket } from "./config/socket";
+import evidenceRoutes from "./routes/evidence.routes";
+
 
 const app = express();
 
@@ -30,6 +40,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/emergency", emergencyRoutes);
 app.use("/api/sos", sosRoutes);
+app.use("/api/evidence", evidenceRoutes);
+
 
 // Global error handler
 app.use(errorHandler);

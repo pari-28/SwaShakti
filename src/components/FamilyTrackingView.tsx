@@ -2,23 +2,44 @@ import React from 'react';
 import { Radio, Shield, Phone, MessageSquare, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '../types';
 
+interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+  relation: string;
+  isPrimary: boolean;
+}
+
 interface FamilyTrackingViewProps {
   profile: UserProfile;
+
+  liveLocation?: {
+    latitude: number;
+    longitude: number;
+  };
+
+  emergencyContacts?: EmergencyContact[];
+
   onFamilyCallUser: () => void;
   onFamilySendMessage: () => void;
   onFamilyEscalate: () => void;
+
   timeStr?: string;
   riskScore?: number;
 }
 
 export default function FamilyTrackingView({
   profile,
+  liveLocation,
+  emergencyContacts = [],
   onFamilyCallUser,
   onFamilySendMessage,
   onFamilyEscalate,
   timeStr,
   riskScore = 14,
 }: FamilyTrackingViewProps) {
+  console.log("Emergency Contacts:", emergencyContacts);
+console.log("Live Location:", liveLocation);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* LEFT PANEL: SVG MAP (col-span-8) */}
@@ -116,28 +137,93 @@ export default function FamilyTrackingView({
         </div>
 
         {/* User Card */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 space-y-3.5">
-          <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 bg-purple-600 text-white rounded-full flex items-center justify-center font-extrabold text-sm border-2 border-white shadow-md">
-              {profile.fullName ? profile.fullName.charAt(0) : 'U'}
-            </div>
-            <div>
-              <h4 className="font-extrabold text-slate-800 text-sm">{profile.fullName}</h4>
-              <span className="text-[9px] text-purple-600 font-extrabold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">Subject Tracked</span>
-            </div>
+        {/* User Card */}
+<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 space-y-3.5">
+  <div className="flex items-center space-x-3">
+    <div className="w-11 h-11 bg-purple-600 text-white rounded-full flex items-center justify-center font-extrabold text-sm border-2 border-white shadow-md">
+      {profile.fullName ? profile.fullName.charAt(0) : "U"}
+    </div>
+
+    <div>
+      <h4 className="font-extrabold text-slate-800 text-sm">
+        {profile.fullName}
+      </h4>
+
+      <span className="text-[9px] text-purple-600 font-extrabold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+        Subject Tracked
+      </span>
+    </div>
+  </div>
+
+  <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-slate-200/60 text-xs font-semibold text-slate-700">
+    <div>
+      <span className="text-slate-400 text-[9px] uppercase tracking-wider block font-bold">
+        Phone
+      </span>
+
+      <span>{profile.phoneNumber || "+91 9876543210"}</span>
+    </div>
+
+    <div>
+      <span className="text-slate-400 text-[9px] uppercase tracking-wider block font-bold">
+        Blood Group
+      </span>
+
+      <span>{profile.bloodGroup || "A+"}</span>
+    </div>
+  </div>
+</div>
+        {/* Emergency Contacts */}
+<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+  <h4 className="font-bold text-slate-800">
+    Emergency Contacts
+  </h4>
+
+  {emergencyContacts.length === 0 ? (
+    <p className="text-sm text-slate-500">
+      No emergency contacts available.
+    </p>
+  ) : (
+    emergencyContacts.map((contact) => (
+      <div
+        key={contact.id}
+        className="flex items-center justify-between border-b last:border-0 pb-2"
+      >
+        <div>
+          <div className="font-semibold">
+            {contact.isPrimary ? "⭐ " : ""}
+            {contact.name}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-slate-200/60 text-xs font-semibold text-slate-700">
-            <div>
-              <span className="text-slate-400 text-[9px] uppercase tracking-wider block font-bold">Phone</span>
-              <span className="truncate">{profile.phoneNumber || '+91 98765 43210'}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[9px] uppercase tracking-wider block font-bold">Blood Group</span>
-              <span>{profile.bloodGroup || 'A+'}</span>
-            </div>
+          <div className="text-sm text-gray-500">
+            {contact.relation}
           </div>
         </div>
+
+        <a
+          href={`tel:${contact.phone}`}
+          className="text-blue-600 font-medium"
+        >
+          {contact.phone}
+        </a>
+      </div>
+    ))
+  )}
+</div>
+
+<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+  <h4 className="font-bold text-slate-800 mb-2">
+    Live Location
+  </h4>
+
+  <p className="text-sm text-slate-600">
+    Latitude: {liveLocation?.latitude?.toFixed(6) ?? "--"}
+  </p>
+
+  <p className="text-sm text-slate-600">
+    Longitude: {liveLocation?.longitude?.toFixed(6) ?? "--"}
+  </p>
+</div>
 
         {/* 3 Action buttons stacked */}
         <div className="space-y-3">

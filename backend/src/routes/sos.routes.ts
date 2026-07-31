@@ -36,6 +36,12 @@ router.patch(
   SOSController.updateStatus
 );
 
+router.post(
+  "/:id/resend",
+  authenticate,
+  SOSController.resend
+);
+
 router.get("/history", authenticate, SOSController.getHistory);
 
 export default router;

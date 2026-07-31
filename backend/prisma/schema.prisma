@@ -12,6 +12,12 @@ enum SOSStatus {
   CANCELLED
 }
 
+enum EvidenceType {
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
 model User {
   id         String  @id @default(uuid())
   fullName   String
@@ -21,41 +27,65 @@ model User {
   profilePic String?
   isVerified Boolean @default(false)
 
-  fcmToken   String?
+  fcmToken String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   emergencyContacts EmergencyContact[]
   sosAlerts         SOSAlert[]
+  evidences         Evidence[]
 }
 
 model EmergencyContact {
-  id            String   @id @default(uuid())
-  name          String
-  phone         String
-  relation      String
-  isPrimary     Boolean  @default(false)
-  countryCode   String   @default("+91")
+  id          String  @id @default(uuid())
+  name        String
+  phone       String
+  relation    String
+  isPrimary   Boolean @default(false)
+  countryCode String  @default("+91")
 
-  userId        String
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SOSAlert {
-  id          String    @id @default(uuid())
-  latitude    Float
-  longitude   Float
-  status      SOSStatus @default(ACTIVE)
-  message     String?
+  id        String    @id @default(uuid())
+  latitude  Float
+  longitude Float
+  status    SOSStatus @default(ACTIVE)
+  message   String?
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  resolvedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  resolvedAt DateTime?
 
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  evidences Evidence[]
+}
+
+model Evidence {
+  id     String @id @default(uuid())
+  userId String
+  sosId  String
+
+  type EvidenceType
+
+  fileName String
+  fileUrl  String
+  publicId String?
+
+  uploadedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sos  SOSAlert @relation(fields: [sosId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sosId])
 }

@@ -10,21 +10,77 @@ export interface EvidenceItem {
   confidence: string;
 }
 
-interface CommunityEvidenceAIProps {
-  reportsCount: number;
-  heatmap: string[];
-  onReportUnsafeZone: () => void;
-  evidenceItems?: EvidenceItem[];
-  communityHazards?: any[];
-}
-
 export default function CommunityEvidenceAI({
   reportsCount,
   heatmap,
   onReportUnsafeZone,
   evidenceItems = [],
   communityHazards = [],
+  fetchEvidence,
 }: CommunityEvidenceAIProps) {
+  
+  const API_URL = import.meta.env.VITE_API_URL;
+
+const uploadEvidence = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  const token = localStorage.getItem("token");
+  const sosId = localStorage.getItem("activeSOSId");
+
+  if (!token) {
+    alert("Please login first.");
+    return;
+  }
+
+  if (!sosId) {
+    alert("No active SOS found.");
+    return;
+  }
+
+  const formData = new FormData();
+
+  formData.append("file", file);
+  formData.append("sosId", sosId);
+
+  try {
+    console.log("Uploading with SOS ID:", sosId);
+    const response = await fetch(
+      `${API_URL}/api/evidence/upload`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+
+    console.log(result);
+
+    if (!response.ok) {
+      alert(result.message);
+      return;
+    }
+
+    await fetchEvidence();
+alert("Evidence uploaded successfully!");
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+console.log("================================");
+console.log("Evidence Items:", evidenceItems);
+console.log("Length:", evidenceItems.length);
+console.table(evidenceItems);
+console.log("================================");
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* LEFT COLUMN: EVIDENCE VAULT TABLE (col-span-7) */}
@@ -41,6 +97,9 @@ export default function CommunityEvidenceAI({
 
         {/* Table */}
         <div className="overflow-x-auto pt-2">
+           <p className="mb-2 font-bold">
+    Total Evidence: {evidenceItems.length}
+  </p>
           <table className="w-full text-left text-xs text-slate-600 border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
@@ -158,6 +217,13 @@ export default function CommunityEvidenceAI({
           <AlertTriangle className="h-4 w-4" />
           <span>Report Unsafe Zone</span>
         </button>
+        <div className="mt-4">
+  <input
+    type="file"
+    onChange={uploadEvidence}
+    className="w-full border rounded-lg p-2"
+  />
+</div>
       </div>
     </div>
   );
