@@ -1,11 +1,5 @@
 import "dotenv/config";
 
-console.log({
-  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "Loaded" : "Missing",
-});
-
 import express from "express";
 import cors from "cors";
 import homeRoutes from "./routes/home.routes";
@@ -25,6 +19,16 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Root Route
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Welcome to SwaShakti API 🚀",
+    version: "1.0.0",
+    health: "/health",
+  });
+});
 
 // Health Route
 app.get("/health", (req, res) => {

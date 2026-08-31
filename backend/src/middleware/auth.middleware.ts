@@ -1,5 +1,4 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import { verifyToken } from "../utils/jwt";
 
 interface JwtPayload {
@@ -18,26 +17,35 @@ export const authenticate = (
   try {
     const authHeader = req.headers.authorization;
 
-console.log("Authorization Header:", authHeader);
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Access denied. No token provided.",
+      });
+    }
 
-if (!authHeader || !authHeader.startsWith("Bearer ")) {
-  return res.status(401).json({
-    success: false,
-    message: "Access denied. No token provided.",
-  });
-}
+    const token = authHeader.substring(7).trim();
 
-const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Access denied. No token provided.",
+      });
+    }
 
-console.log("Extracted Token:", token);
+    const decoded = verifyToken(token) as JwtPayload;
 
-const decoded = verifyToken(token) as JwtPayload;
+    if (!decoded.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid authentication token.",
+      });
+    }
 
-console.log("Decoded:", decoded);
     req.userId = decoded.userId;
 
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
       success: false,
       message: "Invalid or expired token.",
