@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield, Compass, AlertTriangle } from 'lucide-react';
+import CommunityReportForm from "./CommunityReportForm";
 
 export interface EvidenceItem {
   id: string;
@@ -21,65 +22,7 @@ export default function CommunityEvidenceAI({
   
   const API_URL = import.meta.env.VITE_API_URL;
 
-const uploadEvidence = async (
-  e: React.ChangeEvent<HTMLInputElement>
-) => {
-  const file = e.target.files?.[0];
 
-  if (!file) return;
-
-  const token = localStorage.getItem("token");
-  const sosId = localStorage.getItem("activeSOSId");
-
-  if (!token) {
-    alert("Please login first.");
-    return;
-  }
-
-  if (!sosId) {
-    alert("No active SOS found.");
-    return;
-  }
-
-  const formData = new FormData();
-
-  formData.append("file", file);
-  formData.append("sosId", sosId);
-
-  try {
-    console.log("Uploading with SOS ID:", sosId);
-    const response = await fetch(
-      `${API_URL}/api/evidence/upload`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      }
-    );
-
-    const result = await response.json();
-
-    console.log(result);
-
-    if (!response.ok) {
-      alert(result.message);
-      return;
-    }
-
-    await fetchEvidence();
-alert("Evidence uploaded successfully!");
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-console.log("================================");
-console.log("Evidence Items:", evidenceItems);
-console.log("Length:", evidenceItems.length);
-console.table(evidenceItems);
-console.log("================================");
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -112,7 +55,20 @@ console.log("================================");
             <tbody className="divide-y divide-slate-100 font-medium">
               {evidenceItems.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors bg-purple-50/10">
-                  <td className="py-3.5 px-2 font-semibold text-slate-800">{item.name || item.file}</td>
+                 <td className="py-3.5 px-2 font-semibold text-slate-800">
+  {item.file ? (
+    <a
+      href={item.file}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[#6C3EFF] hover:underline"
+    >
+      {item.name}
+    </a>
+  ) : (
+    item.name
+  )}
+</td>
                   <td className={`py-3.5 px-2 font-bold ${item.status.includes('Uploading') ? 'text-purple-600 animate-pulse' : 'text-rose-600'}`}>
                     {item.status}
                   </td>
@@ -217,13 +173,13 @@ console.log("================================");
           <AlertTriangle className="h-4 w-4" />
           <span>Report Unsafe Zone</span>
         </button>
-        <div className="mt-4">
-  <input
-    type="file"
-    onChange={uploadEvidence}
-    className="w-full border rounded-lg p-2"
-  />
-</div>
+
+                {/* Community Incident Report */}
+        <div className="mt-6">
+          <CommunityReportForm onReportSubmitted={fetchEvidence} />
+        </div>
+
+        
       </div>
     </div>
   );

@@ -33,7 +33,7 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
   // Calculate current active step based on form progression
   const isProfileComplete = fullName.trim() !== '' && phoneNumber.trim() !== '' && city.trim() !== '';
   const isContactsComplete = isProfileComplete && c1Name.trim() !== '' && c1Phone.trim() !== '' && c2Name.trim() !== '' && c2Phone.trim() !== '';
-  
+
   let currentStep = 1; // Profile
   if (isContactsComplete) {
     currentStep = 3; // Launch
@@ -49,7 +49,7 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
     setCity('Mumbai');
     setEmail('priya@gmail.com');
     setPassword('SwaShakti123');
-    
+
     setC1Name('Aarav Sharma (Father)');
     setC1Phone('9812345678');
     setC1Lang('Hindi');
@@ -61,54 +61,117 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
     setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    // Basic Validation
-    if (
-      !fullName.trim() ||
-      !email.trim() ||
-      !password.trim() ||
-      !phoneNumber.trim() ||
-      !city.trim() ||
-      !c1Name.trim() ||
-      !c1Phone.trim() ||
-      !c2Name.trim() ||
-      !c2Phone.trim()
-    ) {
-      setError("Please fill in all safety profiles and both emergency contacts.");
-      return;
+  setError('');
+
+  // Name validation
+  if (!fullName.trim()) {
+    setError('Please enter your full name.');
+    return;
+  }
+
+  // Email validation
+  if (!email.trim()) {
+    setError('Please enter your email address.');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(email.trim())) {
+    setError('Please enter a valid email address.');
+    return;
+  }
+
+  // Password validation
+  if (!password) {
+    setError('Please enter a password.');
+    return;
+  }
+
+  if (password.length < 8) {
+    setError('Password must be at least 8 characters.');
+    return;
+  }
+
+  // Main phone validation
+  const phoneRegex = /^[6-9]\d{9}$/;
+
+  if (!phoneNumber.trim()) {
+    setError('Please enter your phone number.');
+    return;
+  }
+
+  if (!phoneRegex.test(phoneNumber.trim())) {
+    setError('Enter a valid 10-digit Indian phone number starting with 6, 7, 8, or 9.');
+    return;
+  }
+
+  // City validation
+  if (!city.trim()) {
+    setError('Please enter your home / current city.');
+    return;
+  }
+
+  // Primary guardian
+  if (!c1Name.trim()) {
+    setError('Please enter the Primary Guardian name.');
+    return;
+  }
+
+  if (!c1Phone.trim()) {
+    setError('Please enter the Primary Guardian mobile number.');
+    return;
+  }
+
+  if (!phoneRegex.test(c1Phone.trim())) {
+    setError('Primary Guardian phone must be a valid 10-digit Indian phone number.');
+    return;
+  }
+
+  // Backup guardian
+  if (!c2Name.trim()) {
+    setError('Please enter the Backup Guardian name.');
+    return;
+  }
+
+  if (!c2Phone.trim()) {
+    setError('Please enter the Backup Guardian mobile number.');
+    return;
+  }
+
+  if (!phoneRegex.test(c2Phone.trim())) {
+    setError('Backup Guardian phone must be a valid 10-digit Indian phone number.');
+    return;
+  }
+
+  // Everything is valid on the frontend
+  setError('');
+
+  const profile: UserProfile = {
+    fullName: fullName.trim(),
+    email: email.trim(),
+    password,
+    phoneNumber: phoneNumber.trim(),
+    bloodGroup,
+    city: city.trim(),
+    contact1: {
+      name: c1Name.trim(),
+      phone: c1Phone.trim(),
+      language: c1Lang
+    },
+    contact2: {
+      name: c2Name.trim(),
+      phone: c2Phone.trim(),
+      language: c2Lang
     }
-
-    if (phoneNumber.length < 10 || c1Phone.length < 10 || c2Phone.length < 10) {
-      setError('Phone numbers must be at least 10 digits long.');
-      return;
-    }
-
-    setError('');
-
-    // Compile profile
-    const profile: UserProfile = {
-      fullName,
-      email,
-      password,
-      phoneNumber,
-      bloodGroup,
-      city,
-      contact1: {
-        name: c1Name,
-        phone: c1Phone,
-        language: c1Lang
-      },
-      contact2: {
-        name: c2Name,
-        phone: c2Phone,
-        language: c2Lang
-      }
-    };
-
-    onSubmit(profile);
   };
+
+  onSubmit(profile);
+};
+
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] text-slate-800 flex flex-col justify-between py-10 px-4 font-sans relative animate-slide-in">
@@ -127,7 +190,7 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
           animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
-      
+
       {/* Header bar back button */}
       <div className="max-w-4xl mx-auto w-full mb-6">
         <button
@@ -141,13 +204,13 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
 
       {/* Main Card Container */}
       <div className="max-w-[680px] w-full mx-auto bg-white rounded-3xl shadow-[0_10px_40px_rgba(108,62,255,0.06)] border border-slate-100 overflow-hidden flex-grow flex flex-col md:flex-row">
-        
+
         {/* LEFT PANEL */}
         <div className="md:w-[42%] bg-[#12122b] text-white p-8 flex flex-col justify-between relative overflow-hidden">
-          
+
           {/* Subtle grid pattern behind */}
           <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:16px_16px]" />
-          
+
           <div className="relative z-10 flex flex-col space-y-6">
             {/* SwaShakti Logo */}
             <div className="flex items-center space-x-2">
@@ -261,13 +324,13 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              
+
               {/* Profile Identity section */}
               <div className="space-y-3.5">
                 <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1.5">
                   1. Profile Identity
                 </h3>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
                     <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Full Name</label>
@@ -303,13 +366,14 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
                   <input
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="Enter a password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
                   />
                 </div>
-                  
+
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Phone Number</label>
@@ -317,9 +381,12 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
                       id="input-phone"
                       type="tel"
                       required
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[6-9][0-9]{9}"
                       placeholder="e.g. 9876543210"
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
                     />
                   </div>
@@ -380,9 +447,12 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
                       id="input-c1phone"
                       type="tel"
                       required
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[6-9][0-9]{9}"
                       placeholder="e.g. 9812345678"
                       value={c1Phone}
-                      onChange={(e) => setC1Phone(e.target.value)}
+                      onChange={(e) => setC1Phone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
                     />
                   </div>
@@ -430,9 +500,12 @@ export default function SetupScreen({ onBack, onSubmit }: SetupScreenProps) {
                       id="input-c2phone"
                       type="tel"
                       required
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[6-9][0-9]{9}"
                       placeholder="e.g. 9898765432"
                       value={c2Phone}
-                      onChange={(e) => setC2Phone(e.target.value)}
+                      onChange={(e) => setC2Phone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6C3EFF]/20 focus:border-[#6C3EFF] focus:bg-white transition-all placeholder:text-slate-400"
                     />
                   </div>

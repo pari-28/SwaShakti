@@ -38,10 +38,11 @@ export default function EmergencyContacts() {
   }, []);
 
   async function handleSave(data: {
-    name: string;
-    phone: string;
-    relation: string;
-  }) {
+  name: string;
+  phone: string;
+  email: string;
+  relation: string;
+}) {
     try {
       if (editingContact) {
         await updateEmergencyContact(editingContact.id, data);

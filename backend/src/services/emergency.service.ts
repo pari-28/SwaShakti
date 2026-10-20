@@ -2,7 +2,7 @@ import prisma from "../config/prisma";
 
 class EmergencyService {
   async create(userId: string, data: any) {
-    const { name, phone, relation } = data;
+    const { name, phone, email, relation } = data;
 
     const totalContacts = await prisma.emergencyContact.count({
   where: {
@@ -29,6 +29,7 @@ if (existingPhone) {
       data: {
   name,
   phone,
+  email,
   relation,
   userId,
   isPrimary: totalContacts === 0,

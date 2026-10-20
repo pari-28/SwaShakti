@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
+import { getCityRisk, CityRisk } from "../services/risk";
 import { Compass, AlertTriangle, Sparkles, Activity } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -28,11 +29,6 @@ const communityReportsData = [
   { name: 'Sun', Reports: 17 }
 ];
 
-const riskLevelData = [
-  { name: 'Low', value: 62 },
-  { name: 'Medium', value: 27 },
-  { name: 'High', value: 11 }
-];
 
 const riskColors = ['#10b981', '#f59e0b', '#ef4444'];
 
@@ -61,7 +57,47 @@ interface SwaShaktiAnalyticsViewProps {
   aiConfidence?: number;
 }
 
-export default function SwaShaktiAnalyticsView({ aiConfidence = 96 }: SwaShaktiAnalyticsViewProps) {
+export default function SwaShaktiAnalyticsView({
+  aiConfidence = 96,
+}: SwaShaktiAnalyticsViewProps) {
+  const [cityRisk, setCityRisk] = useState<CityRisk[]>([]);
+  const [loadingRisk, setLoadingRisk] = useState(true);
+  const [riskError, setRiskError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCityRisk() {
+      try {
+        setLoadingRisk(true);
+
+        const data = await getCityRisk();
+
+        setCityRisk(data);
+      } catch (error) {
+        console.error("Failed to load city risk:", error);
+        setRiskError("Unable to load city risk data");
+      } finally {
+        setLoadingRisk(false);
+      }
+    }
+
+    loadCityRisk();
+  }, []);
+
+    const riskLevelData = [
+    {
+      name: "Low",
+      value: cityRisk.filter((city) => city.riskLevel === "LOW").length,
+    },
+    {
+      name: "Medium",
+      value: cityRisk.filter((city) => city.riskLevel === "MEDIUM").length,
+    },
+    {
+      name: "High",
+      value: cityRisk.filter((city) => city.riskLevel === "HIGH").length,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-2.5">
@@ -127,6 +163,96 @@ export default function SwaShaktiAnalyticsView({ aiConfidence = 96 }: SwaShaktiA
             {aiConfidence > 90 ? 'EXCELLENT' : 'OPTIMAL'} (v2.1 Engine)
           </span>
         </div>
+      </div>
+
+      {/* City Risk Overview */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm border-t-4 border-[#6C3EFF]">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h4 className="font-display font-extrabold text-sm text-slate-800">
+              City Risk Overview
+            </h4>
+            <p className="text-xs text-slate-500 mt-1">
+              Public reference data used for development and risk analysis
+            </p>
+          </div>
+
+          {!loadingRisk && !riskError && (
+            <span className="text-xs font-bold text-slate-500">
+              {cityRisk.length} cities
+            </span>
+          )}
+        </div>
+
+        {loadingRisk && (
+          <div className="py-10 text-center text-sm text-slate-500">
+            Loading city risk data...
+          </div>
+        )}
+
+        {riskError && (
+          <div className="py-10 text-center text-sm text-red-500">
+            {riskError}
+          </div>
+        )}
+
+        {!loadingRisk && !riskError && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left">
+                  <th className="py-3 px-3 font-bold text-slate-500">
+                    City
+                  </th>
+                  <th className="py-3 px-3 font-bold text-slate-500">
+                    Incidents
+                  </th>
+                  <th className="py-3 px-3 font-bold text-slate-500">
+                    Risk Score
+                  </th>
+                  <th className="py-3 px-3 font-bold text-slate-500">
+                    Risk Level
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {cityRisk.map((city) => (
+                  <tr
+                    key={city.city}
+                    className="border-b border-slate-100 last:border-0"
+                  >
+                    <td className="py-3 px-3 font-bold text-slate-800">
+                      {city.city}
+                    </td>
+
+                    <td className="py-3 px-3 text-slate-600">
+                      {city.incidentCount.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-3 font-bold text-slate-800">
+                      {city.riskScore}
+                    </td>
+
+                    <td className="py-3 px-3">
+                      <span
+                        className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          city.riskLevel === "HIGH"
+                            ? "bg-red-50 text-red-700 border border-red-200"
+                            : city.riskLevel === "MEDIUM"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        }`}
+                      >
+                        {city.riskLevel}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

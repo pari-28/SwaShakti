@@ -7,8 +7,14 @@ export const createEmergencySchema = z.object({
     .min(2, "Name must be at least 2 characters long"),
 
   phone: z
+  .string()
+  .regex(/^(\+91)?\d{10}$/, "Phone number must be a valid Indian phone number"),
+
+  email: z
     .string()
-    .regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+    .trim()
+    .email("Invalid email address")
+    .transform((value) => value.toLowerCase()),
 
   relation: z
     .string()
@@ -26,6 +32,13 @@ export const updateEmergencySchema = z.object({
   phone: z
     .string()
     .regex(/^\d{10}$/, "Phone number must be exactly 10 digits")
+    .optional(),
+
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email address")
+    .transform((value) => value.toLowerCase())
     .optional(),
 
   relation: z

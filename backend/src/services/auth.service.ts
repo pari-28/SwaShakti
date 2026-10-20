@@ -43,10 +43,11 @@ export class AuthService {
 
     emergencyContacts: {
       create: emergencyContacts.map((contact: any) => ({
-        name: contact.name,
-        phone: contact.phone,
-        relation: contact.relation,
-      })),
+      name: contact.name,
+      phone: contact.phone,
+      email: contact.email,
+      relation: contact.relation,
+    })),
     },
   },
 

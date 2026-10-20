@@ -2,6 +2,7 @@ import { ApiError } from "../errors/ApiError";
 import prisma from "../config/prisma";
 import { SOSStatus } from "@prisma/client";
 import NotificationService from "./notification.service";
+import EmailService from "./email.service";
 import { getIO } from "../config/socket";
 
 class SOSService {
@@ -44,12 +45,15 @@ console.log("Existing SOS:", existingSOS);
   throw new ApiError(409, "An active SOS already exists.");
 }
 
-    const sos = await prisma.sOSAlert.create({
+   const sos = await prisma.sOSAlert.create({
   data: {
     latitude,
     longitude,
-    message,
     userId,
+
+    ...(message !== undefined && {
+      message,
+    }),
   },
 });
 
@@ -64,18 +68,12 @@ const verifySOS = await prisma.sOSAlert.findUnique({
 
 console.log("✅ Verify SOS:", verifySOS);
 
-console.log("DATABASE URL:", process.env.DATABASE_URL);
 
 // Fetch emergency contacts
 const emergencyContacts = await this.getEmergencyContacts(userId);
 
 console.log("Emergency Contacts:", emergencyContacts);
 
-for (const contact of emergencyContacts) {
-  console.log(
-    `${contact.isPrimary ? "⭐" : "📱"} Alert would be sent to ${contact.name} (${contact.phone})`
-  );
-}
 
 // Get user's FCM token
 const user = await prisma.user.findUnique({
@@ -98,6 +96,41 @@ if (user?.fcmToken) {
     console.log("FCM Response:", response);
   } catch (error) {
     console.error("FCM Error:", error);
+  }
+}
+
+// Send SOS email to all emergency contacts
+for (const contact of emergencyContacts) {
+  if (!contact.email) {
+    console.log(
+      `⚠️ No email configured for ${contact.name}`
+    );
+    continue;
+  }
+
+  try {
+    console.log(
+      `📧 Sending SOS email to ${contact.name} (${contact.email})`
+    );
+
+    const response = await EmailService.sendSOSAlert(
+      contact.email,
+      contact.name,
+      user?.fullName || "SwaShakti User",
+      latitude,
+      longitude,
+      message
+    );
+
+    console.log(
+      `✅ SOS email sent to ${contact.email}`,
+      response.messageId
+    );
+  } catch (error) {
+    console.error(
+      `❌ Failed to send SOS email to ${contact.email}:`,
+      error
+    );
   }
 }
 
@@ -259,29 +292,38 @@ static async resend(userId: string, sosId: string) {
 
   const emergencyContacts = await this.getEmergencyContacts(userId);
 
+  // Log emergency contacts
+  for (const contact of emergencyContacts) {
+    console.log(
+  `${contact.isPrimary ? "⭐" : "📱"} Resending alert to ${contact.name} (${contact.phone})`
+);
+  }
+
+  // Broadcast resend event through Socket.IO
   try {
     const io = getIO();
 
-   io.to(`family:${userId}`).emit("sos-resent", {
-  sos,
-  contacts: emergencyContacts,
-});
+    io.to(`family:${userId}`).emit("sos-resent", {
+      sos,
+      contacts: emergencyContacts,
+    });
 
-io.to(`user:${userId}`).emit("sos-resent", {
-  sos,
-  contacts: emergencyContacts,
-});
+    io.to(`user:${userId}`).emit("sos-resent", {
+      sos,
+      contacts: emergencyContacts,
+    });
 
-    console.log("🚨 SOS alert re-sent.");
+    console.log("🚨 SOS alert re-sent via Socket.IO.");
   } catch (error) {
     console.error("Socket broadcast failed:", error);
   }
 
   return {
-  sos,
-  emergencyContacts,
-};
+    sos,
+    emergencyContacts,
+  };
 }
+
     static async getHistory(userId: string) {
         return prisma.sOSAlert.findMany({
             where: {

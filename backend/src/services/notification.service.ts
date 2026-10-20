@@ -1,6 +1,7 @@
 import { getMessaging } from "firebase-admin/messaging";
 
 class NotificationService {
+
   async sendPushNotification(
     token: string,
     title: string,
@@ -14,6 +15,7 @@ class NotificationService {
       },
     });
   }
+
 }
 
 export default new NotificationService();

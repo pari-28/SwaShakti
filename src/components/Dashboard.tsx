@@ -1,5 +1,10 @@
 import { socket } from "../services/socket";
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { 
   Shield, 
   MapPin, 
@@ -37,8 +42,22 @@ import PoliceDispatchView from './PoliceDispatchView';
 import SwaShaktiAnalyticsView from './SwaShaktiAnalyticsView';
 import { useLocation } from "../hooks/useLocation";
 import LiveMap from "./LiveMap";
+import AIRiskAnalysis from "./AIRiskAnalysis";
 import SOSCountdown from "./SOSCountdown";
 import EmergencyContacts from "./EmergencyContacts";
+import { CommunityAreaRisk } from "../services/risk";
+import AISafetyAssistant from "./AISafetyAssistant";
+import RoutePlanner from "./RoutePlanner";
+import { PlannedRoute } from "../types/route";
+import {
+  evaluateRouteDeviation,
+  type DeviationResult,
+} from "../services/routeDeviation";
+import {
+  analyzeRouteRisk,
+  RouteRiskAnalysis,
+} from "../services/routeRisk";
+import { getCommunityAreaRisk } from "../services/risk";
 
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -113,9 +132,6 @@ export default function Dashboard({
 
   // Interactive UI toggles
   const [safeHavenLocked, setSafeHavenLocked] = useState(false);
-  const [showFakeCall, setShowFakeCall] = useState(false);
-  const [fakeCallAnswered, setFakeCallAnswered] = useState(false);
-  const [demoPanelExpanded, setDemoPanelExpanded] = useState(true);
   const [aiDecisionExpanded, setAiDecisionExpanded] = useState(false);
   const [showAddLanguageDropdown, setShowAddLanguageDropdown] = useState(false);
 
@@ -139,6 +155,167 @@ const holdTimer = useRef<number | null>(null);
   const activeSOSIdRef = useRef<string | null>(null);
 
   const { location, error } = useLocation();
+
+  const [selectedRisk, setSelectedRisk] =
+  useState<CommunityAreaRisk | null>(null);
+
+  const [routeRisk, setRouteRisk] =
+  useState<RouteRiskAnalysis | null>(null);
+
+  const [plannedRoute, setPlannedRoute] =
+  useState<PlannedRoute | null>(null);
+
+  const [deviationResult, setDeviationResult] =
+  useState<DeviationResult | null>(null);
+
+const [isRouteDeviationConfirmed, setIsRouteDeviationConfirmed] =
+  useState(false);
+
+const offRouteReadingsRef = useRef(0);
+const onRouteReadingsRef = useRef(0);
+const deviationConfirmedRef = useRef(false);
+
+const handleRiskLocationChange = useCallback(
+  (risk: CommunityAreaRisk | null) => {
+    setSelectedRisk(risk);
+  },
+  []
+);
+
+
+
+useEffect(() => {
+  if (!plannedRoute) {
+    setDeviationResult(null);
+    setIsRouteDeviationConfirmed(false);
+    deviationConfirmedRef.current = false;
+    offRouteReadingsRef.current = 0;
+    onRouteReadingsRef.current = 0;
+    return;
+  }
+
+  if (!location) return;
+
+  const result = evaluateRouteDeviation(
+    location.latitude,
+    location.longitude,
+    location.accuracy,
+    plannedRoute
+  );
+
+  setDeviationResult(result);
+
+  
+
+  if (result.status === "GPS_UNRELIABLE") {
+  offRouteReadingsRef.current = 0;
+  onRouteReadingsRef.current = 0;
+
+  // Do not treat unreliable GPS as proof of route deviation.
+  // Keep the existing confirmed warning unchanged until
+  // reliable readings confirm that the user is back on route.
+  return;
+}
+
+  if (result.status === "OFF_ROUTE") {
+    offRouteReadingsRef.current += 1;
+    onRouteReadingsRef.current = 0;
+
+    if (
+      offRouteReadingsRef.current >= 3 &&
+      !deviationConfirmedRef.current
+    ) {
+      deviationConfirmedRef.current = true;
+      setIsRouteDeviationConfirmed(true);
+    }
+
+    return;
+  }
+
+  if (result.status === "ON_ROUTE") {
+    offRouteReadingsRef.current = 0;
+
+    if (deviationConfirmedRef.current) {
+      onRouteReadingsRef.current += 1;
+
+      if (onRouteReadingsRef.current >= 2) {
+        deviationConfirmedRef.current = false;
+        setIsRouteDeviationConfirmed(false);
+        onRouteReadingsRef.current = 0;
+      }
+    } else {
+      onRouteReadingsRef.current = 0;
+    }
+  }
+}, [location, plannedRoute]);
+
+
+
+ useEffect(() => {
+  const updateSOSLocation = async () => {
+    const token = localStorage.getItem("token");
+    const sosId = activeSOSIdRef.current;
+
+    if (!token || !sosId || !location) {
+      return;
+    }
+
+    // Do not send location after SOS has been resolved
+    if (!globalState.systemStatus.isSosActive) {
+      return;
+    }
+
+    try {
+      console.log("📍 Updating SOS location:", {
+        sosId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+
+      const response = await fetch(
+        `${API_URL}/api/sos/${sosId}/location`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      // The SOS may have been resolved while this request was in flight.
+      if (response.status === 404) {
+        console.warn("ℹ️ SOS is no longer active. Stopping location updates.");
+
+        if (activeSOSIdRef.current === sosId) {
+          activeSOSIdRef.current = null;
+          localStorage.removeItem("activeSOSId");
+        }
+
+        return;
+      }
+
+      if (!response.ok) {
+        console.error("❌ Failed to update SOS location:", result);
+        return;
+      }
+
+      console.log("✅ SOS location updated:", result);
+    } catch (err) {
+      console.error("❌ SOS location update error:", err);
+    }
+  };
+
+  updateSOSLocation();
+}, [location, globalState.systemStatus.isSosActive]);
+
+
 
 
   // Helper to format current time as HH:MM:SS
@@ -170,6 +347,13 @@ const holdTimer = useRef<number | null>(null);
   }, [globalState.systemLogs, globalState.isTerminalOpen]);
 
   useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    console.log("No token found — skipping evidence fetch.");
+    return;
+  }
+
   fetchEvidence();
 }, []);
 
@@ -313,150 +497,9 @@ socket.on("sos-resolved", (data) => {
   };
 }, []);
 
-  // PART C: DEMO CONTROL ACTIONS
-
-  // 1. TRIGGER CAB DEVIATION
-  const handleDemoCabDeviation = () => {
-    updateNested('cabSimulation', { isDeviating: true, warningActive: true, countdown: 15, completed: false });
-    updateNested('systemStatus', { riskScore: 81 });
-    
-    const currentTime = getFormattedTime();
-    const newAlert = {
-      id: Date.now(),
-      message: '🚨 TRAJECTORY ANOMALY — Vehicle routing deviation detected',
-      status: 'active' as const,
-      timestamp: currentTime
-    };
-
-    updateState({ 
-      activeView: 'user', 
-      workspaceTint: false,
-      activeAlertCount: globalState.activeAlertCount + 1,
-      policeAlerts: [newAlert, ...globalState.policeAlerts]
-    });
-
-    pushLog('[SIMULATION] Trajectory anomaly detected. System-wide state updated.');
-    pushLog('[SIMULATION] Police dispatch queue updated with TRAJECTORY ANOMALY alert.');
-    pushLog('[SIMULATION] Family tracking view: Risk badge → HIGH.');
-    pushLog('[SIMULATION] Cab deviation countdown: 15 seconds to auto-SOS.');
-
-    if (deviationTimerRef.current) {
-  clearInterval(deviationTimerRef.current);
-}
-
-    let count = 15;
-    deviationTimerRef.current = setInterval(() => {
-      count -= 1;
-      if (count <= 0) {
-        clearInterval(deviationTimerRef.current);
-        updateNested('cabSimulation', { completed: true, isDeviating: false, countdown: 0 });
-        updateNested('systemStatus', { isSosActive: true, riskScore: 95 });
-        pushLog('[SIMULATION] Cab deviation countdown hit 0. SOS Auto-Triggered.');
-      } else {
-        updateNested('cabSimulation', { countdown: count });
-        pushLog(`[SIMULATION] Cab deviation countdown: ${count} seconds to auto-SOS.`);
-      }
-    }, 1000);
-  };
-
-  // 2. TRIGGER DISTRESS VOICE
-  const handleDemoDistressVoice = () => {
-    updateNested('audioMonitor', { status: 'alert', detectedIntent: 'Bachao', confidence: 99, waveformAlert: true });
-    updateState({ workspaceTint: true });
-
-    setTimeout(() => {
-      pushLog("[AUDIO AI] Acoustic pattern matched: Distress keyword 'Bachao'");
-    }, 0);
-
-    setTimeout(() => {
-      pushLog("[BHASHINI] NLP translation pipeline active. Hindi → English: 'Please save me'");
-    }, 600);
-
-    setTimeout(() => {
-      pushLog("[EMERGENCY NODE] Intent confirmed at 99%. Initiating SOS pre-check...");
-    }, 1200);
-  };
-
-  // 3. GENERATE COMMUNITY HAZARD
-  const handleDemoCommunityHazard = () => {
-    const currentTime = getFormattedTime();
-    const newHazard = { id: Date.now(), label: 'New Zone — ' + currentTime, risk: 'danger' as const };
-    updateState({
-      activeView: 'community',
-      communityHazards: [...globalState.communityHazards, newHazard]
-    });
-    pushLog('[COMMUNITY AI] New hazard report received. Heatmap recalculated.');
-    pushLog('[COMMUNITY AI] Updated prediction: 44 reports today. Risk index rising.');
-  };
-
-  // 4. SIMULATE FULL SOS CHAIN
-  const handleDemoFullSOSChain = () => {
-    updateState({ activeView: 'user' });
-    updateNested('systemStatus', { isSosActive: true, riskScore: 95 });
-    
-    const timestamp = getFormattedTime();
-    const activeAlertId = Date.now();
-    const evidenceId = Date.now() + 1;
-    
-    const newAlert = {
-      id: activeAlertId,
-      message: '🚨 FULL EMERGENCY — User manual Panic SOS activated',
-      status: 'active' as const,
-      timestamp
-    };
-
-    const newEvidence = {
-      id: evidenceId.toString(),
-      name: 'SOS_Audio_' + timestamp + '.mp3',
-      status: 'Uploading...',
-      transcript: 'Processing...',
-      confidence: '—'
-    };
-
-    updateState({
-      activeAlertCount: globalState.activeAlertCount + 1,
-      policeAlerts: [newAlert, ...globalState.policeAlerts],
-      evidenceVault: [newEvidence, ...globalState.evidenceVault]
-    });
-
-    // Mutate evidence row after 2000ms
-    setTimeout(() => {
-      updateState({
-        evidenceVault: globalState.evidenceVault.map((item: any) => {
-          if (item.id === evidenceId.toString()) {
-            return {
-              ...item,
-              status: '🔒 Encrypted',
-              transcript: 'Distress audio captured',
-              confidence: '99%'
-            };
-          }
-          return item;
-        })
-      });
-    }, 2000);
-
-    // Staggered logs
-    setTimeout(() => {
-      pushLog('[SOS] Panic button activated by user.');
-    }, 0);
-
-    setTimeout(() => {
-      pushLog('[GPS] Coordinates captured: 23.2599°N, 77.4126°E');
-    }, 800);
-
-    setTimeout(() => {
-      pushLog('[BHASHINI] Translating SOS message... Hindi alert ready.');
-    }, 1600);
-
-    setTimeout(() => {
-      pushLog('[TWILIO] SMS dispatched to Contact 1 (Hindi) and Contact 2 (English).');
-    }, 2400);
-
-    setTimeout(() => {
-      pushLog('[VAULT] Audio stream encrypted and uploaded to secure evidence server.');
-    }, 3200);
-  };
+  
+ 
+ 
 
   // Core Actions
   const handleFindSafeHaven = () => {
@@ -464,18 +507,19 @@ socket.on("sos-resolved", (data) => {
     pushLog('AI mapping coordinates to nearest landmark.');
   };
 
-  const handleSimulateDeviation = () => {
-    handleDemoCabDeviation();
-  };
+  
 
-  const handleTriggerFakeCall = () => {
-    setShowFakeCall(true);
-    setFakeCallAnswered(false);
-    pushLog('Fake call triggered. Deterrent protocol activated.');
-  };
+  
 
   const handleTriggerPanicSos = async () => {
-    console.log("🚨 handleTriggerPanicSos called", new Date().toISOString());
+  console.log("🚨 handleTriggerPanicSos called", new Date().toISOString());
+
+  // Prevent duplicate SOS requests
+  if (activeSOSIdRef.current) {
+    console.log("⚠️ SOS already active:", activeSOSIdRef.current);
+    setShowActiveSOSModal(true);
+    return;
+  }
 
   try {
     const token = localStorage.getItem("token");
@@ -549,44 +593,14 @@ const sosId = result.data.sos.id;
 localStorage.setItem("activeSOSId", sosId);
 console.log("Saved activeSOSId:", sosId);
 activeSOSIdRef.current = sosId;
-watchIdRef.current = navigator.geolocation.watchPosition(
-  async (position) => {
 
-    if (!activeSOSIdRef.current) {
-        return;
-    }
+updateNested("systemStatus", {
+  isSosActive: true,
+  riskScore: 95,
+});
 
-    const sosId = activeSOSIdRef.current;
 
-    try {
 
-        await fetch(
-            `${API_URL}/api/sos/${sosId}/location`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          }),
-        }
-      );
-    } catch (err) {
-      console.error("Location update failed:", err);
-    }
-  },
-  (err) => {
-    console.error("Watch Position Error:", err);
-  },
-  {
-    enableHighAccuracy: true,
-    maximumAge: 5000,
-    timeout: 30000,
-  }
-);
        
   } catch (err) {
     console.error(err);
@@ -601,37 +615,60 @@ const handleCountdownComplete = async () => {
   await handleTriggerPanicSos();
 };
 const handleResendAlert = async () => {
+  console.log("🔔 RESEND BUTTON CLICKED");
+
   const token = localStorage.getItem("token");
+  const sosId = activeSOSIdRef.current;
 
-  if (!token || !activeSOSIdRef.current) return;
+  console.log("Token exists:", !!token);
+  console.log("Active SOS ID:", sosId);
 
-  
+  if (!token || !sosId) {
+    alert("No active SOS found.");
+    return;
+  }
 
   try {
+    console.log("📤 Sending resend request...");
+
     const response = await fetch(
-  `${API_URL}/api/sos/${activeSOSIdRef.current}/resend`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+      `${API_URL}/api/sos/${sosId}/resend`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
+    console.log("📥 Resend response status:", response.status);
 
-const result = await response.json();
+    const result = await response.json();
 
-if (!response.ok) {
-  alert(result.message || "Failed to resend emergency alert.");
-  return;
-}
+    console.log("📥 Resend response:", result);
 
-pushLog("🚨 Emergency alert re-sent.");
-setShowActiveSOSModal(false);
+    if (!response.ok || !result.success) {
+      alert(result.message || "Failed to resend emergency alert.");
+      return;
+    }
+
+    pushLog("🚨 Emergency alert re-sent successfully.");
+
+    alert("🚨 Emergency alert re-sent successfully.");
+
+    // Don't close the modal immediately
+    // setShowActiveSOSModal(false);
+
   } catch (err) {
-    console.error(err);
+    console.error("❌ Resend error:", err);
+    alert("Failed to resend emergency alert.");
   }
 };
+
+
+
+ 
+
   const handleTriggerSilentPolice = () => {
   pushLog("[SOS] Silent Police alert dispatched.");
 };
@@ -790,48 +827,66 @@ if (deviationTimerRef.current) {
   };
 
   const fetchEvidence = async () => {
+    console.log("🔄 fetchEvidence() CALLED");
   const token = localStorage.getItem("token");
-  const sosId = localStorage.getItem("activeSOSId");
 
-  console.log("Fetching evidence for SOS:", sosId);
+  console.log("Fetching community report evidence...");
 
-  if (!sosId) return;
+  if (!token) {
+    console.log("No authentication token found.");
+    return;
+  }
 
-  const response = await fetch(
-    `${API_URL}/api/evidence/${sosId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  try {
+    const response = await fetch(
+      `${API_URL}/api/community-reports/my`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    console.log("Community Reports API Response:", result);
+
+    if (!response.ok || !result.success) {
+      console.error(
+        "Failed to fetch community reports:",
+        result.message
+      );
+      return;
     }
-  );
 
-  const result = await response.json();
+    const reports = result.data || [];
 
-  console.log("Evidence API Response:", result);
+    console.log("📊 Community reports received:", reports.length);
+console.log("📊 Community reports:", reports);
 
-  if (response.ok) {
-    const formatted = result.data.map((item: any) => {
-  const cleanName = item.fileName
-    .normalize("NFKC")
-    .replace(/\u202F/g, " ")
-    .replace(/â¯/g, " ");
+const formatted = reports.map((report: any) => ({
+  id: report.id,
+  name: report.evidenceUrl
+    ? `${report.category} Evidence`
+    : `${report.category} Report`,
+  file: report.evidenceUrl || undefined,
+  status: report.evidenceUrl ? "Uploaded" : "Report Submitted",
+  transcript: report.evidenceUrl
+    ? "Community incident evidence stored"
+    : "Community incident report submitted without evidence",
+  confidence: report.evidenceUrl ? "100%" : "—",
+}));
 
-  return {
-    id: item.id,
-    name: cleanName,
-    file: cleanName,
-    status: "Uploaded",
-    transcript: "Secure evidence stored",
-    confidence: "100%",
-  };
-});
-
-    console.log("Formatted Evidence:", formatted);
+    console.log("Community Evidence:", formatted);
 
     setEvidenceItems(formatted);
 
-    console.log("State being set:", formatted);
+    console.log("Evidence state set:", formatted);
+  } catch (error) {
+    console.error(
+      "Failed to fetch community report evidence:",
+      error
+    );
   }
 };
 
@@ -855,6 +910,10 @@ if (deviationTimerRef.current) {
   })();
 
   const alertAcknowledged = globalState.policeAlerts.length === 0 || globalState.policeAlerts[0]?.status === 'acknowledged';
+
+  const showConfirmedRouteDeviation =
+  isRouteDeviationConfirmed &&
+  deviationResult?.status === "OFF_ROUTE";
 
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden transition-all duration-500 font-sans select-none relative ${
@@ -1053,11 +1112,11 @@ if (deviationTimerRef.current) {
                 Good Evening, {profile.fullName} <span className="inline-block animate-bounce" style={{ animationDuration: '3s' }}>👋</span>
               </h1>
               <div className="flex items-center space-x-1.5 text-slate-500 text-xs mt-1">
-                <MapPin className="h-3.5 w-3.5 text-[#6C3EFF]" />
-                <span className="font-semibold text-slate-600">
+  <MapPin className="h-3.5 w-3.5 text-[#6C3EFF]" />
+  <span className="font-semibold text-slate-600">
     {location?.address ?? "Fetching current location..."}
-</span>
-              </div>
+  </span>
+</div>
               {error && (
                   <p className="text-red-600 text-sm mt-2">
                     {error}
@@ -1158,11 +1217,22 @@ if (deviationTimerRef.current) {
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     
                     {/* Live Map Container */}
-                    <div className="xl:col-span-8">
-                      {location && (
-                        <LiveMap location={location} />
-                      )}
-                    </div>
+<div className="xl:col-span-8">
+  {location && (
+    <>
+      <LiveMap
+  location={location}
+  plannedRoute={plannedRoute}
+  routeRisk={routeRisk}
+  onRiskLocationChange={handleRiskLocationChange}
+/>
+
+      {selectedRisk && (
+        <AIRiskAnalysis riskData={selectedRisk} />
+      )}
+    </>
+  )}
+</div>
 
                     {/* Explainable AI Insights Card */}
                     <div className="xl:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-4.5 flex flex-col justify-between shadow-sm">
@@ -1331,100 +1401,263 @@ if (deviationTimerRef.current) {
 
                 {/* LIVE GUARDIAN TRANSIT CARD */}
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm border-t-4 border-[#6C3EFF]">
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    
-                    <div className="flex items-start space-x-3.5">
-                      <div className="bg-[#6C3EFF]/10 p-2.5 rounded-2xl text-[#6C3EFF] mt-1 shrink-0">
-                        <Car className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-extrabold text-base text-slate-900 flex items-center gap-1.5">
-                          Live Guardian Commute
-                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Transit Shield</span>
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                          Secure your transit logs before boarding a cab. We automatically check for abnormal route departures or stops.
-                        </p>
-                      </div>
-                    </div>
+  <div className="flex flex-col gap-4">
+    
+    <div className="flex items-start space-x-3.5">
+      <div className="bg-[#6C3EFF]/10 p-2.5 rounded-2xl text-[#6C3EFF] mt-1 shrink-0">
+        <Car className="h-6 w-6" />
+      </div>
 
-                    <button
-                      onClick={handleSimulateDeviation}
-                      disabled={globalState.cabSimulation.isDeviating}
-                      className={`font-bold text-xs px-5 py-3 rounded-2xl shadow-md transition-all cursor-pointer whitespace-nowrap self-start sm:self-center shrink-0 ${
-                        globalState.cabSimulation.isDeviating
-                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                          : 'bg-rose-600 hover:bg-rose-700 text-white hover:shadow-lg'
-                      }`}
-                    >
-                      {globalState.cabSimulation.isDeviating ? 'Deviation Active...' : 'Simulate Cab Deviation'}
-                    </button>
+      <div>
+        <h4 className="font-display font-extrabold text-base text-slate-900 flex items-center gap-1.5">
+          Live Guardian Commute
+          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+            Transit Shield
+          </span>
+        </h4>
 
-                  </div>
+        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+          Secure your transit logs before boarding a cab. We automatically check for abnormal route departures or stops.
+        </p>
+      </div>
+    </div>
+
+    <RoutePlanner
+  location={location}
+  onRoutePlanned={async (route) => {
+    setPlannedRoute(route);
+
+    try {
+      const riskAreas = await getCommunityAreaRisk();
+
+      const analysis = analyzeRouteRisk(
+        route,
+        riskAreas
+      );
+
+      setRouteRisk(analysis);
+    } catch (error) {
+      console.error(
+        "Failed to analyze route risk:",
+        error
+      );
+
+      setRouteRisk(null);
+    }
+  }}
+  onRouteCleared={() => {
+    setPlannedRoute(null);
+    setRouteRisk(null);
+  }}
+/>
+
+{routeRisk && (
+  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          SwaShakti Route Safety
+        </p>
+
+        <h3 className="mt-1 text-lg font-bold text-slate-900">
+          Route Risk Analysis
+        </h3>
+      </div>
+
+      <span
+        className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+          routeRisk.riskLevel === "HIGH"
+            ? "bg-red-100 text-red-700"
+            : routeRisk.riskLevel === "MEDIUM"
+            ? "bg-amber-100 text-amber-700"
+            : "bg-emerald-100 text-emerald-700"
+        }`}
+      >
+        {routeRisk.riskLevel}
+      </span>
+    </div>
+
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="rounded-xl bg-slate-50 p-3">
+        <p className="text-xs text-slate-500">
+          Route Score
+        </p>
+        <p className="mt-1 text-xl font-bold text-slate-900">
+          {routeRisk.riskScore}
+        </p>
+      </div>
+
+      <div className="rounded-xl bg-slate-50 p-3">
+        <p className="text-xs text-slate-500">
+          High Risk
+        </p>
+        <p className="mt-1 text-xl font-bold text-red-600">
+          {routeRisk.highRiskAreas}
+        </p>
+      </div>
+
+      <div className="rounded-xl bg-slate-50 p-3">
+        <p className="text-xs text-slate-500">
+          Moderate
+        </p>
+        <p className="mt-1 text-xl font-bold text-amber-600">
+          {routeRisk.mediumRiskAreas}
+        </p>
+      </div>
+
+      <div className="rounded-xl bg-slate-50 p-3">
+        <p className="text-xs text-slate-500">
+          Low Risk
+        </p>
+        <p className="mt-1 text-xl font-bold text-emerald-600">
+          {routeRisk.lowRiskAreas}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-4 rounded-xl bg-slate-50 p-4">
+      <p className="text-sm leading-6 text-slate-700">
+        {routeRisk.recommendation}
+      </p>
+    </div>
+
+    {routeRisk.riskAreas.length > 0 && (
+      <div className="mt-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          Risk Areas Near Route
+        </p>
+
+        <div className="mt-2 space-y-2">
+          {routeRisk.riskAreas.map((area) => (
+            <div
+              key={`${area.location}-${area.riskScore}`}
+              className="flex items-center justify-between rounded-xl border border-slate-100 p-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  {area.location}
+                </p>
+
+                <p className="text-xs text-slate-500">
+                  {area.incidentCount} incident
+                  {area.incidentCount !== 1
+                    ? "s"
+                    : ""}{" "}
+                  ·{" "}
+                  {area.distanceFromRouteKm.toFixed(2)} km
+                  from route
+                </p>
+              </div>
+
+              <span
+                className={`text-xs font-extrabold ${
+                  area.riskLevel === "HIGH"
+                    ? "text-red-600"
+                    : area.riskLevel === "MEDIUM"
+                    ? "text-amber-600"
+                    : "text-emerald-600"
+                }`}
+              >
+                {area.riskLevel}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+  </div>
 
                   {/* Warning Alerts for Deviation */}
-                  {globalState.cabSimulation.isDeviating && (
-                    <div className="mt-4 bg-rose-50 border border-rose-100 rounded-2xl p-4 space-y-3 animate-view-fade">
-                      <div className="flex items-start space-x-2.5 text-rose-800">
-                        <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
-                        <div>
-                          <p className="font-bold text-xs">⚠ WARNING: Vehicle has deviated 500m from the safe route!</p>
-                          <p className="text-[11px] text-rose-700 mt-0.5">Please confirm your safety immediately to prevent automated emergency dispatch.</p>
-                        </div>
-                      </div>
+                  
+{/* REAL GPS ROUTE DEVIATION STATUS */}
+{plannedRoute && (
+  <div
+    className={`mt-4 rounded-2xl border p-4 space-y-3 ${
+      showConfirmedRouteDeviation
+  ? "bg-rose-50 border-rose-200"
+  : "bg-slate-50 border-slate-200"
+    }`}
+  >
+    <div className="flex items-start gap-3">
+      <div
+        className={`rounded-xl p-2 ${
+          showConfirmedRouteDeviation
+  ? "bg-rose-100 text-rose-600"
+  : "bg-purple-100 text-[#6C3EFF]"
+        }`}
+      >
+        {showConfirmedRouteDeviation ? (
+  <AlertTriangle className="h-5 w-5" />
+) : (
+  <MapPin className="h-5 w-5" />
+)}
+      </div>
 
-                      {/* Verification Countdown */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-rose-200/50">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-2 h-2 bg-rose-600 rounded-full animate-ping" />
-                          <span className="text-xs font-mono font-bold text-rose-700">
-                            {globalState.cabSimulation.completed ? (
-                              <span className="text-rose-600 font-extrabold uppercase animate-pulse">
-                                SOS Auto-Triggered: Contacts notified.
-                              </span>
-                            ) : (
-                              `Verifying safety... ${globalState.cabSimulation.countdown}s remaining`
-                            )}
-                          </span>
-                        </div>
+      <div className="flex-1">
+        <p className="text-sm font-extrabold text-slate-900">
+          {showConfirmedRouteDeviation
+  ? "Route deviation detected"
+            : deviationResult?.status === "GPS_UNRELIABLE"
+            ? "Waiting for reliable GPS"
+            : deviationResult?.status === "OFF_ROUTE"
+            ? "Checking route deviation"
+            : "Live route monitoring"}
+        </p>
 
-                        {!globalState.cabSimulation.completed && (
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => {
-                                updateNested('cabSimulation', { isDeviating: false, warningActive: false });
-                                updateNested('systemStatus', { riskScore: 14 });
-                                pushLog('Transit deviation alert solved. Driver rejoined corridor.');
-                                if (deviationTimerRef.current) clearInterval(deviationTimerRef.current);
-                              }}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                            >
-                              I am Safe
-                            </button>
-                            <button
-                              onClick={() => {
-                                updateNested("cabSimulation", {
-                                  completed: true,
-                                  countdown: 0,
-                                  isDeviating: false,
-                                });
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">
+          {showConfirmedRouteDeviation
+  ? "Your location is consistently more than 100 m from the planned route. Please check your surroundings."
+            : deviationResult?.message ??
+              "Waiting for your current GPS position."}
+        </p>
 
-                                updateNested("systemStatus", {
-                                  isSosActive: true,
-                                  riskScore: 95,
-                                });
+        {deviationResult?.distanceMeters != null && (
+          <p className="mt-2 text-xs font-bold text-slate-700">
+            Distance from route:{" "}
+            {Math.round(deviationResult.distanceMeters)} m
+            {" · "}GPS accuracy: ±
+            {Math.round(deviationResult.gpsAccuracyMeters)} m
+          </p>
+        )}
+      </div>
+    </div>
 
-                                setShowCountdown(true);
-                              }}
-                              className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                            >
-                              Trigger SOS Now
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+    {isRouteDeviationConfirmed &&
+  deviationResult?.status === "OFF_ROUTE" && (
+      <div className="rounded-xl border border-rose-200 bg-white p-3">
+        <p className="text-xs text-rose-800">
+          This warning is based on GPS distance. A deviation alone
+          does not establish an emergency. SOS has not been triggered.
+        </p>
+
+        <button
+          onClick={() => setShowCountdown(true)}
+          className="mt-3 w-full rounded-xl bg-rose-600 px-4 py-3 text-xs font-extrabold text-white hover:bg-rose-700"
+        >
+          Trigger SOS
+        </button>
+      </div>
+    )}
+    
+    {deviationResult?.status === "GPS_UNRELIABLE" && (
+  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <h3 className="font-semibold text-amber-900">
+      GPS signal unreliable
+    </h3>
+    <p className="mt-1 text-sm text-amber-800">
+      {deviationResult.message}
+    </p>
+    <p className="mt-2 text-xs text-amber-800">
+      Route deviation cannot be confirmed while GPS accuracy is insufficient.
+    </p>
+  </div>
+)}
+  </div>
+)}
+
 
                 </div>
 
@@ -1433,7 +1666,7 @@ if (deviationTimerRef.current) {
               {/* COLUMN 3: EMERGENCY PANEL (spans 4 rows on lg screen) */}
               <section className="lg:col-span-4 space-y-6">
                 
-                {/* 1. AUDIO MONITOR & FAKE CALL CARD */}
+                {/* 1. AUDIO MONITOR */}
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-5 border-t-4 border-[#6C3EFF]">
                   
                   <div className="flex items-start justify-between">
@@ -1550,73 +1783,9 @@ if (deviationTimerRef.current) {
                       </table>
                     </div>
                   </div>
-
-                  {/* 2. FAKE CALL MODULE */}
-                  <div className="border-t border-slate-100 pt-4 space-y-3">
-                    <button
-                      onClick={handleTriggerFakeCall}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Phone className="h-3.5 w-3.5" />
-                      <span>Simulate Fake Call</span>
-                    </button>
-
-                    {showFakeCall && (
-                      <div className="bg-slate-900 text-white rounded-2xl p-4 border border-slate-800 space-y-4 animate-view-fade">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-[#6C3EFF] text-white flex items-center justify-center font-extrabold text-sm border-2 border-slate-800 shadow-md">
-                            MA
-                          </div>
-                          <div>
-                            <h5 className="font-bold text-xs text-slate-200">Maa (Family Member)</h5>
-                            <span className="text-[10px] text-slate-400 block mt-0.5 animate-pulse">
-                              {fakeCallAnswered ? 'Connected • Speaking' : 'Incoming Call — Deterrent'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {fakeCallAnswered && (
-                          <div className="bg-[#6C3EFF]/15 border border-[#6C3EFF]/20 rounded-xl p-3 text-xs text-purple-300 leading-normal font-medium">
-                            <span className="font-bold text-[10px] uppercase text-purple-400 block mb-1">Deterrent Voice:</span>
-                            "Caller: Main 2 minute mein pahunch raha hoon! (I am 2 minutes away!)"
-                          </div>
-                        )}
-
-                        <div className="flex gap-2 justify-end pt-1">
-                          {!fakeCallAnswered ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setFakeCallAnswered(true);
-                                  pushLog('Caller speech playback active: deterrent active.');
-                                }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
-                              >
-                                <Phone className="h-3 w-3" />
-                                <span>Answer</span>
-                              </button>
-                              <button
-                                onClick={() => setShowFakeCall(false)}
-                                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
-                              >
-                                <PhoneOff className="h-3 w-3" />
-                                <span>Decline</span>
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => setShowFakeCall(false)}
-                              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-1.5 rounded-lg transition-all cursor-pointer"
-                            >
-                              Hang Up Call
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
                 </div>
+
+                 
 
                 {/* 3. PANIC SOS MASSIVE TRIGGER CARD */}
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm flex flex-col items-center justify-center text-center space-y-3.5 border-t-4 border-[#6C3EFF]">
@@ -1877,7 +2046,10 @@ Press & Hold to Resolve
         <div className="flex-1 bg-slate-900 text-emerald-400 font-mono text-[11px] p-4 overflow-y-auto space-y-1.5">
           {logs.map((log: string, index: number) => {
             const isAlert = log.includes('🚨') || log.includes('WARNING') || log.includes('EMERGENCY') || log.includes('ANOMALY');
-            const isTrigger = log.includes('🎙️') || log.includes('⏳') || log.includes('Fake') || log.includes('[SIMULATION]') || log.includes('[SOS]');
+            const isTrigger =
+  log.includes('🎙️') ||
+  log.includes('⏳') ||
+  log.includes('[SOS]');
             const colorClass = isAlert ? 'text-rose-400 font-bold' : isTrigger ? 'text-amber-400' : 'text-emerald-400';
             return (
               <div key={index} className={`leading-relaxed ${colorClass}`}>
@@ -1889,98 +2061,7 @@ Press & Hold to Resolve
         </div>
       </div>
 
-      {/* Hackathon Demo Controls Panel */}
-      <div id="demo-controls-panel" className="fixed bottom-6 right-6 z-40">
-        {demoPanelExpanded ? (
-          <div className="bg-white shadow-2xl rounded-3xl p-5 w-80 border-2 border-purple-200 animate-slide-in relative text-slate-800">
-            <button 
-              onClick={() => setDemoPanelExpanded(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-1 rounded-full transition-colors cursor-pointer"
-              title="Minimize panel"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-
-            <div className="flex items-center space-x-2.5 mb-2.5">
-              <div className="bg-purple-100 p-1.5 rounded-xl text-purple-600 animate-pulse">
-                <Zap className="h-4.5 w-4.5" />
-              </div>
-              <div>
-                <h4 className="font-display font-black text-sm text-purple-900 tracking-tight">Live AI Simulation Panel</h4>
-                <p className="text-[10px] text-slate-500 font-medium leading-relaxed">Instantly simulate AI events for judges.</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-purple-100">
-              {/* Trigger Cab Deviation */}
-              <button
-                id="btn-demo-cab-deviation"
-                onClick={handleDemoCabDeviation}
-                className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 font-bold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Car className="h-3.5 w-3.5 text-rose-500 group-hover:scale-110 transition-transform shrink-0" />
-                  <span>Trigger Cab Deviation</span>
-                </span>
-                <span className="text-[9px] bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded-md font-mono font-bold shrink-0">Spike Risk</span>
-              </button>
-
-              {/* Trigger Distress Voice */}
-              <button
-                id="btn-demo-distress-voice"
-                onClick={handleDemoDistressVoice}
-                className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 border border-amber-200 font-bold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Mic className="h-3.5 w-3.5 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
-                  <span>Trigger Distress Voice</span>
-                </span>
-                <span className="text-[9px] bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-md font-mono font-bold shrink-0">Bachao</span>
-              </button>
-
-              {/* Generate Community Hazard */}
-              <button
-                id="btn-demo-community-hazard"
-                onClick={handleDemoCommunityHazard}
-                className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-800 border border-emerald-200 font-bold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-between group cursor-pointer text-left"
-              >
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-emerald-500 group-hover:scale-110 transition-transform shrink-0" />
-                  <span>Generate Community Hazard</span>
-                </span>
-                <span className="text-[9px] bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-md font-mono font-bold shrink-0">Heatmap</span>
-              </button>
-
-              {/* Simulate Full SOS Chain */}
-              <button
-                id="btn-demo-sos-chain"
-                onClick={handleDemoFullSOSChain}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white border border-transparent font-bold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-between shadow-md hover:shadow-lg group cursor-pointer text-left"
-              >
-                <span className="flex items-center gap-1.5">
-                  <ShieldAlert className="h-3.5 w-3.5 text-purple-200 group-hover:animate-bounce shrink-0" />
-                  <span>Simulate Full SOS Chain</span>
-                </span>
-                <span className="text-[9px] bg-purple-800 text-purple-100 px-1.5 py-0.5 rounded-md font-mono font-bold shrink-0">Sequence</span>
-              </button>
-            </div>
-            
-            <div className="mt-3 text-[9px] text-slate-400 font-mono text-center flex items-center justify-center gap-1.5 select-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
-              SwaShakti Demo Utility v2.1
-            </div>
-          </div>
-        ) : (
-          <button 
-            id="btn-expand-demo"
-            onClick={() => setDemoPanelExpanded(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white shadow-2xl rounded-2xl p-3 border-2 border-white flex items-center space-x-2 animate-bounce cursor-pointer"
-          >
-            <Zap className="h-4 w-4" />
-            <span className="text-xs font-bold font-display tracking-tight">Open Demo Panel</span>
-          </button>
-        )}
-            </div>
+      <AISafetyAssistant riskData={selectedRisk} />
               
          </div>
   );

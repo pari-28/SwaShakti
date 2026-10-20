@@ -5,10 +5,11 @@ interface ContactModalProps {
   open: boolean;
   onClose: () => void;
   onSave: (data: {
-    name: string;
-    phone: string;
-    relation: string;
-  }) => void;
+  name: string;
+  phone: string;
+  email: string;
+  relation: string;
+}) => void;
   contact?: EmergencyContact | null;
 }
 
@@ -20,16 +21,23 @@ export default function ContactModal({
 }: ContactModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [relation, setRelation] = useState("");
 
   useEffect(() => {
-    if (contact) {
-      setName(contact.name);
-      setPhone(contact.phone);
-      setRelation(contact.relation);
-    } else {
+   if (contact) {
+  setName(contact.name);
+
+  // Remove +91 / country code if it exists
+  const normalizedPhone = contact.phone.replace(/^\+91/, "");
+  setPhone(normalizedPhone);
+
+  setEmail(contact.email || "");
+  setRelation(contact.relation);
+} else {
       setName("");
       setPhone("");
+      setEmail("");
       setRelation("");
     }
   }, [contact]);
@@ -37,16 +45,19 @@ export default function ContactModal({
   if (!open) return null;
 
   const handleSubmit = () => {
-    if (!name.trim() || !phone.trim() || !relation.trim()) {
-      alert("Please fill all fields.");
-      return;
-    }
+    if (!name.trim() || !phone.trim() || !email.trim() || !relation.trim()) {
+  alert("Please fill all fields.");
+  return;
+}
 
-    onSave({
-      name,
-      phone,
-      relation,
-    });
+   const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+
+onSave({
+  name,
+  phone: normalizedPhone,
+  email: email.trim(),
+  relation,
+});
 
     onClose();
   };
@@ -73,6 +84,14 @@ export default function ContactModal({
             placeholder="Phone Number"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+          />
+
+          <input
+            type="email"
+            className="w-full border rounded-lg p-3"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
           <input

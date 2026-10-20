@@ -7,6 +7,8 @@ export const validate =
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
+       console.log("❌ VALIDATION BODY:", req.body);
+  console.log("❌ VALIDATION ERRORS:", result.error.issues);
       return res.status(400).json({
         success: false,
         message: "Validation failed",

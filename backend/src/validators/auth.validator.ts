@@ -14,6 +14,13 @@ const emergencyContactSchema = z.object({
 
   phone: phoneSchema,
 
+  email: z
+  .string()
+  .trim()
+  .email("Invalid email address")
+  .transform((value) => value.toLowerCase())
+  .optional(),
+
   relation: z
     .string()
     .trim()

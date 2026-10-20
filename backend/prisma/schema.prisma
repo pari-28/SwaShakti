@@ -6,6 +6,129 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                String             @id @default(uuid())
+  fullName          String
+  email             String             @unique
+  password          String
+  phone             String?            @unique
+  profilePic        String?
+  isVerified        Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  fcmToken          String?
+  communityReports  CommunityReport[]
+  emergencyContacts EmergencyContact[]
+  evidences         Evidence[]
+  sosAlerts         SOSAlert[]
+}
+
+model EmergencyContact {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String
+  relation    String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  countryCode String   @default("+91")
+  isPrimary   Boolean  @default(false)
+  email       String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SOSAlert {
+  id         String     @id @default(uuid())
+  latitude   Float
+  longitude  Float
+  createdAt  DateTime   @default(now())
+  userId     String
+  status     SOSStatus  @default(ACTIVE)
+  message    String?
+  resolvedAt DateTime?
+  updatedAt  DateTime   @updatedAt
+  evidences  Evidence[]
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Evidence {
+  id         String       @id @default(uuid())
+  userId     String
+  sosId      String
+  type       EvidenceType
+  fileName   String
+  fileUrl    String
+  publicId   String?
+  uploadedAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
+  sos        SOSAlert     @relation(fields: [sosId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sosId])
+}
+
+model CommunityReport {
+  id                String    @id @default(uuid())
+  userId            String
+  category          String
+  description       String
+  latitude          Float?
+  longitude         Float?
+  locationPrecision String    @default("APPROXIMATE")
+  city              String?
+  district          String?
+  state             String?
+  occurredAt        DateTime?
+  evidenceUrl       String?
+  evidencePublicId  String?
+  evidenceType      String?
+  status            String    @default("SUBMITTED")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  location          String    @default("Unknown")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+  @@index([location])
+  @@index([city])
+  @@index([occurredAt])
+  @@index([status])
+}
+
+model PublicReferenceIncident {
+  id                String    @id @default(uuid())
+  source            String
+  sourceRecordId    String
+  category          String
+  crimeCode         String?
+  crimeDomain       String?
+  occurredAt        DateTime?
+  reportedAt        DateTime?
+  state             String?
+  district          String?
+  city              String?
+  latitude          Float?
+  longitude         Float?
+  locationPrecision String    @default("CITY")
+  victimAge         Int?
+  victimGender      String?
+  weaponUsed        String?
+  caseClosed        Boolean?
+  caseClosedAt      DateTime?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([source, sourceRecordId])
+  @@index([city])
+  @@index([category])
+  @@index([occurredAt])
+  @@index([source])
+  @@index([sourceRecordId])
+}
+
 enum SOSStatus {
   ACTIVE
   RESOLVED
@@ -16,76 +139,4 @@ enum EvidenceType {
   IMAGE
   AUDIO
   VIDEO
-}
-
-model User {
-  id         String  @id @default(uuid())
-  fullName   String
-  email      String  @unique
-  password   String
-  phone      String? @unique
-  profilePic String?
-  isVerified Boolean @default(false)
-
-  fcmToken String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  emergencyContacts EmergencyContact[]
-  sosAlerts         SOSAlert[]
-  evidences         Evidence[]
-}
-
-model EmergencyContact {
-  id          String  @id @default(uuid())
-  name        String
-  phone       String
-  relation    String
-  isPrimary   Boolean @default(false)
-  countryCode String  @default("+91")
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model SOSAlert {
-  id        String    @id @default(uuid())
-  latitude  Float
-  longitude Float
-  status    SOSStatus @default(ACTIVE)
-  message   String?
-
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  resolvedAt DateTime?
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  evidences Evidence[]
-}
-
-model Evidence {
-  id     String @id @default(uuid())
-  userId String
-  sosId  String
-
-  type EvidenceType
-
-  fileName String
-  fileUrl  String
-  publicId String?
-
-  uploadedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-
-  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sos  SOSAlert @relation(fields: [sosId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([sosId])
 }

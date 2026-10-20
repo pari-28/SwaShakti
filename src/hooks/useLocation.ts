@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LocationData } from "../types/location";
 import { reverseGeocode } from "../services/location";
 
-const DISTANCE_THRESHOLD = 50; // Immediate update (meters)
-const MINOR_MOVEMENT_THRESHOLD = 5; // Slight movement (meters)
-const GEOCODE_INTERVAL = 60000; // 1 minute
+const DISTANCE_THRESHOLD = 50;
+const MINOR_MOVEMENT_THRESHOLD = 5;
+const GEOCODE_INTERVAL = 60000;
 
 function calculateDistance(
   lat1: number,
@@ -12,8 +13,7 @@ function calculateDistance(
   lat2: number,
   lon2: number
 ): number {
-  const R = 6371000; // Earth radius in meters
-
+  const R = 6371000;
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
   const dLat = toRadians(lat2 - lat1);
@@ -31,134 +31,170 @@ function calculateDistance(
 export function useLocation() {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isTracking, setIsTracking] = useState(false);
 
-   const lastGeocodeLocation = useRef<{
+  const watchIdRef = useRef<number | null>(null);
+  const mountedRef = useRef(false);
+
+  const lastGeocodeLocation = useRef<{
     latitude: number;
     longitude: number;
   } | null>(null);
 
   const lastGeocodeTime = useRef(0);
+  const cachedAddress = useRef("Fetching current location...");
 
-  const cachedAddress = useRef<string>("Fetching current location...");
-
-  useEffect(() => {
+  const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Geolocation is not supported.");
       return;
     }
 
-    const watchId = navigator.geolocation.watchPosition(
-     async (position) => {
-  const latitude = position.coords.latitude;
-  const longitude = position.coords.longitude;
+    // Reuse the existing watcher if tracking is already active.
+    if (watchIdRef.current !== null) return;
 
-  let address = cachedAddress.current;
+    setError(null);
 
-  const now = Date.now();
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
 
-  let shouldGeocode = false;
+        if (import.meta.env.DEV) {
+          console.log("[GPS SUCCESS]", {
+            latitude,
+            longitude,
+            accuracy,
+            timestamp: position.timestamp,
+          });
+        }
 
-  if (!lastGeocodeLocation.current) {
-    shouldGeocode = true;
-  } else {
-    const distance = calculateDistance(
-  lastGeocodeLocation.current.latitude,
-  lastGeocodeLocation.current.longitude,
-  latitude,
-  longitude
-);
+        let address = cachedAddress.current;
+        const now = Date.now();
+        let shouldGeocode = false;
 
-const elapsed = now - lastGeocodeTime.current;
+        if (!lastGeocodeLocation.current) {
+          shouldGeocode = true;
+        } else {
+          const distance = calculateDistance(
+            lastGeocodeLocation.current.latitude,
+            lastGeocodeLocation.current.longitude,
+            latitude,
+            longitude
+          );
 
-if (import.meta.env.DEV) {
-  console.log(
-    `Distance: ${distance.toFixed(2)}m | Elapsed: ${elapsed}ms`
-  );
-}
+          const elapsed = now - lastGeocodeTime.current;
 
-// Refresh immediately if user moved significantly
-if (distance >= DISTANCE_THRESHOLD) {
-  shouldGeocode = true;
-}
-// Refresh after some time only if user has moved a little
-else if (
-  distance > MINOR_MOVEMENT_THRESHOLD &&
-  elapsed >= GEOCODE_INTERVAL
-) {
-  shouldGeocode = true;
-}
-  }
+          if (distance >= DISTANCE_THRESHOLD) {
+            shouldGeocode = true;
+          } else if (
+            distance > MINOR_MOVEMENT_THRESHOLD &&
+            elapsed >= GEOCODE_INTERVAL
+          ) {
+            shouldGeocode = true;
+          }
 
-  if (shouldGeocode) {
-  try {
-    if (import.meta.env.DEV) {
-  console.log("Reverse geocoding...", {
-    latitude,
-    longitude,
-  });
-}
+          if (import.meta.env.DEV) {
+            console.log(
+              `Distance: ${distance.toFixed(2)}m | Elapsed: ${elapsed}ms`
+            );
+          }
+        }
 
-    const newAddress = await reverseGeocode(latitude, longitude);
+        if (shouldGeocode) {
+          try {
+            const newAddress = await reverseGeocode(latitude, longitude);
 
-if (newAddress) {
-  address = newAddress;
-  cachedAddress.current = newAddress;
-}
-    // Save location for future distance calculations
-    lastGeocodeLocation.current = {
-      latitude,
-      longitude,
-    };
+            if (newAddress) {
+              address = newAddress;
+              cachedAddress.current = newAddress;
+            }
 
-    // Save the time of this successful geocode
-    lastGeocodeTime.current = now;
-  } catch (error) {
-  console.error("Reverse geocoding failed:", error);
+            lastGeocodeLocation.current = { latitude, longitude };
+            lastGeocodeTime.current = now;
+          } catch (geocodeError) {
+            if (import.meta.env.DEV) {
+              console.warn("Reverse geocoding failed:", geocodeError);
+            }
 
-  // Keep previous address
-  address = cachedAddress.current;
+            address = cachedAddress.current;
+            lastGeocodeLocation.current = { latitude, longitude };
+            lastGeocodeTime.current = now;
+          }
+        }
 
-  // Save current coordinates
-  lastGeocodeLocation.current = {
-    latitude,
-    longitude,
-  };
+        // Ignore updates if the watcher was stopped while geocoding.
+        if (watchIdRef.current === null) return;
 
-  // Prevent immediate retry on the next GPS update
-  lastGeocodeTime.current = now;
-}
-}
+        setLocation({
+          latitude,
+          longitude,
+          accuracy,
+          timestamp: position.timestamp,
+          address,
+        });
 
-  if (!shouldGeocode) {
-  if (import.meta.env.DEV) {
-  console.log("Using cached address", {
-    latitude,
-    longitude,
-  });
-}
-}
-
-
-  setLocation({
-    latitude,
-    longitude,
-    accuracy: position.coords.accuracy,
-    timestamp: position.timestamp,
-    address,
-  });
-},
+        setError(null);
+      },
       (err) => {
-        setError(err.message);
+        if (import.meta.env.DEV) {
+          console.warn("[GPS] Location update failed", {
+            code: err.code,
+            message: err.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        if (err.code === 1) {
+          setError("Location permission was denied.");
+        } else if (err.code === 2) {
+          setError(
+            "Your current location is unavailable. Please check your GPS settings."
+          );
+        } else if (err.code === 3) {
+          setError(
+            "Location request timed out. Waiting for another GPS update."
+          );
+        }
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 15000,
+        maximumAge: 0,
+        timeout: 10000,
       }
     );
 
-    return () => navigator.geolocation.clearWatch(watchId);
+    setIsTracking(true);
   }, []);
 
-  return { location, error };
+  const stopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+
+    setIsTracking(false);
+  }, []);
+
+  // Automatically start tracking when this hook mounts.
+  useEffect(() => {
+    mountedRef.current = true;
+    startTracking();
+
+    return () => {
+      mountedRef.current = false;
+
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [startTracking]);
+
+  return {
+    location,
+    error,
+    isTracking,
+    startTracking,
+    stopTracking,
+  };
 }
