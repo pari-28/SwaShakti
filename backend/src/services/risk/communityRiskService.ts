@@ -118,14 +118,27 @@ function isUsableLocation(location: string): boolean {
   return normalized.length >= 2 && !invalidValues.has(normalized);
 }
 
-function getLocationKey(location: string): string {
-  let normalized = normalizeLocation(location).toLowerCase();
 
-  normalized = normalized
-    .replace(/,\s*mp$/i, "")
-    .replace(/,\s*madhya pradesh$/i, "")
-    .replace(/,\s*india$/i, "")
-    .trim();
+function getLocationKey(location: string): string {
+  const parts = normalizeLocation(location)
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const administrativeSuffixes = new Set([
+    "india",
+    "mp",
+    "m.p.",
+    "madhya pradesh",
+  ]);
+
+  while (
+    parts.length > 1 &&
+    administrativeSuffixes.has(parts[parts.length - 1] ?? "")
+  ) {
+    parts.pop();
+  }
 
   const cityAliases: Record<string, string> = {
     banglore: "bangalore",
@@ -136,14 +149,15 @@ function getLocationKey(location: string): string {
     kerala: "kerala",
   };
 
-  const firstPart = normalized.split(",")[0].trim();
+  const firstPart = parts[0] ?? "";
 
-  if (cityAliases[firstPart]) {
-    return cityAliases[firstPart];
-  }
+  // A single place name and its longer administrative form
+  // share a key, without merging distinct neighbourhoods.
+  const baseName = firstPart;
 
-  return normalized;
+  return cityAliases[baseName] ?? baseName;
 }
+
 
 function getCanonicalLocation(location: string): string {
   const key = getLocationKey(location);
@@ -463,14 +477,36 @@ export async function getCommunityAreaRiskByLocation(
 
   const riskScore = averageSeverity * 10;
 
+    const firstReport = reports[0];
+
+  if (!firstReport) {
+    return null;
+  }
+
+  const categoryCounts = new Map<string, number>();
+
+  for (const report of reports) {
+    const category = report.category;
+    categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+  }
+
+  const categories = Array.from(categoryCounts, ([category, count]) => ({
+    category,
+    count,
+  }));
+
   return {
-    location: normalizeLocation(reports[0].location),
-    city: reports[0].city?.trim() || null,
+    location: normalizeLocation(firstReport.location),
+    city: firstReport.city?.trim() || null,
     incidentCount: reports.length,
+    publicReferenceIncidentCount: 0,
+    communityReportCount: reports.length,
     riskScore: Number(riskScore.toFixed(2)),
     riskLevel: getRiskLevel(riskScore),
     latitude,
     longitude,
+    categories,
+    dataSource: "COMMUNITY_REPORT",
   };
 }
 

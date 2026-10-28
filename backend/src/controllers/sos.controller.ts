@@ -63,25 +63,26 @@ class SOSController {
     }
   );
 
-  static resend = asyncHandler(
-  async (req: AuthRequest, res: Response) => {
 
-    console.log("🔔 RESEND ENDPOINT HIT");
-    console.log("User ID:", req.userId);
-    console.log("SOS ID:", req.params.id);
 
-    const sos = await SOSService.resend(
-      req.userId!,
-      req.params.id
-    );
+static resend = asyncHandler(async (req: AuthRequest, res: Response) => {
 
-    return res.status(200).json({
-      success: true,
-      message: "Emergency alert re-sent successfully.",
-      data: sos,
-    });
-  }
-);
+
+  const result = await SOSService.resend(
+    req.userId!,
+    req.params.id
+  );
+
+
+
+  return res.status(200).json({
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+
 
   static getHistory = asyncHandler(
     async (req: AuthRequest, res: Response) => {

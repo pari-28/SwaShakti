@@ -13,7 +13,7 @@ export class EvidenceService {
 
     console.log("Creating evidence for SOS:", data.sosId);
 
-    console.log("DATABASE URL:", process.env.DATABASE_URL);
+
 
 const existingSOS = await prisma.sOSAlert.findUnique({
   where: {

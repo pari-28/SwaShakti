@@ -5,20 +5,20 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { 
-  Shield, 
-  MapPin, 
-  Phone, 
+import {
+  Shield,
+  MapPin,
+  Phone,
   PhoneOff,
-  Heart, 
-  Mic, 
-  AlertTriangle, 
-  CheckCircle, 
-  X, 
-  Compass, 
-  Volume2, 
-  Activity, 
-  RefreshCw, 
+  Heart,
+  Mic,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  Compass,
+  Volume2,
+  Activity,
+  RefreshCw,
   Send,
   MessageSquare,
   ShieldAlert,
@@ -122,7 +122,7 @@ export default function Dashboard({
   const reportsCount = globalState.communityHazards.length + 39;
   const panicActive = globalState.systemStatus.isSosActive;
   const activeAlertsCount = globalState.activeAlertCount;
- 
+
   const responseTime = globalState.systemStatus.responseTime;
 
   // Local clock state
@@ -132,7 +132,6 @@ export default function Dashboard({
 
   // Interactive UI toggles
   const [safeHavenLocked, setSafeHavenLocked] = useState(false);
-  const [aiDecisionExpanded, setAiDecisionExpanded] = useState(false);
   const [showAddLanguageDropdown, setShowAddLanguageDropdown] = useState(false);
 
   const [showCountdown, setShowCountdown] = useState(false);
@@ -150,7 +149,6 @@ const holdTimer = useRef<number | null>(null);
   ]);
 
   const deviationTimerRef = useRef<any>(null);
-  const terminalEndRef = useRef<HTMLDivElement>(null);
   const watchIdRef = useRef<number | null>(null);
   const activeSOSIdRef = useRef<string | null>(null);
 
@@ -205,7 +203,7 @@ useEffect(() => {
 
   setDeviationResult(result);
 
-  
+
 
   if (result.status === "GPS_UNRELIABLE") {
   offRouteReadingsRef.current = 0;
@@ -337,14 +335,7 @@ useEffect(() => {
     return () => clearInterval(clockInterval);
   }, []);
 
-  // Scroll drawer terminal logs to bottom on open or update
-  useEffect(() => {
-    if (globalState.isTerminalOpen && terminalEndRef.current) {
-      setTimeout(() => {
-        terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 80);
-    }
-  }, [globalState.systemLogs, globalState.isTerminalOpen]);
+
 
   useEffect(() => {
   const token = localStorage.getItem("token");
@@ -497,9 +488,9 @@ socket.on("sos-resolved", (data) => {
   };
 }, []);
 
-  
- 
- 
+
+
+
 
   // Core Actions
   const handleFindSafeHaven = () => {
@@ -507,9 +498,9 @@ socket.on("sos-resolved", (data) => {
     pushLog('AI mapping coordinates to nearest landmark.');
   };
 
-  
 
-  
+
+
 
   const handleTriggerPanicSos = async () => {
   console.log("🚨 handleTriggerPanicSos called", new Date().toISOString());
@@ -601,7 +592,7 @@ updateNested("systemStatus", {
 
 
 
-       
+
   } catch (err) {
     console.error(err);
   }
@@ -647,6 +638,12 @@ const handleResendAlert = async () => {
 
     console.log("📥 Resend response:", result);
 
+    console.log("📧 Resend email summary:", {
+  emailsSent: result.data?.emailsSent,
+  emailErrors: result.data?.emailErrors,
+  message: result.data?.message,
+});
+
     if (!response.ok || !result.success) {
       alert(result.message || "Failed to resend emergency alert.");
       return;
@@ -667,12 +664,12 @@ const handleResendAlert = async () => {
 
 
 
- 
+
 
   const handleTriggerSilentPolice = () => {
   pushLog("[SOS] Silent Police alert dispatched.");
 };
-    
+
 
 
 
@@ -708,7 +705,7 @@ const cancelHoldResolve = () => {
 
   setHoldProgress(0);
 };
-  
+
 
   const handleResetPanic = async () => {
   try {
@@ -917,13 +914,13 @@ const formatted = reports.map((report: any) => ({
 
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden transition-all duration-500 font-sans select-none relative ${
-      globalState.workspaceTint 
-        ? 'ring-8 ring-rose-600/30 shadow-[inset_0_0_80px_rgba(239,68,68,0.25)] border-4 border-rose-600' 
+      globalState.workspaceTint
+        ? 'ring-8 ring-rose-600/30 shadow-[inset_0_0_80px_rgba(239,68,68,0.25)] border-4 border-rose-600'
         : ''
     } ${
       globalState.activeView === 'police' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'
     }`}>
-      
+
       {/* Dynamic Keyframes & Global Animations */}
       <style>{`
         @keyframes pulse-red {
@@ -1008,16 +1005,16 @@ const formatted = reports.map((report: any) => ({
         <div className="bg-red-600 text-white font-bold text-center py-2.5 px-4 text-xs sm:text-sm flex items-center justify-center gap-2 animate-pulse shrink-0 z-30 shadow-lg">
           <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
           <span>🚨 SOS ACTIVE — Contacts Notified — Location Shared</span>
-          
+
         </div>
       )}
 
       {/* Outer Flex Container */}
       <div className="flex-grow flex overflow-hidden">
-        
+
         {/* LEFT SIDEBAR (fixed 260px, bg-white, border-right) */}
         <aside className="w-[260px] bg-white border-r border-slate-200 flex flex-col justify-between text-slate-800 z-40 shrink-0 select-none">
-          
+
           <div className="p-5 flex flex-col space-y-5">
             {/* SwaShakti Head Logo */}
             <div className="flex items-center justify-between">
@@ -1045,8 +1042,8 @@ const formatted = reports.map((report: any) => ({
                     key={tab.name}
                     onClick={() => setActiveTab(tab.name)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-sm font-semibold transition-all cursor-pointer ${
-                      isActive 
-                        ? 'bg-purple-100 text-purple-700 border-l-4 border-purple-600 shadow-sm' 
+                      isActive
+                        ? 'bg-purple-100 text-purple-700 border-l-4 border-purple-600 shadow-sm'
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
@@ -1062,18 +1059,25 @@ const formatted = reports.map((report: any) => ({
               })}
             </nav>
 
-            {/* Hardware Trigger Card */}
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 mt-2">
-              <div className="flex items-start space-x-2.5">
-                <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-amber-800">Hardware Trigger: ARMED</h4>
-                  <p className="text-[10px] text-amber-700 leading-relaxed mt-1">
-                    Shake phone 3x to fire SOS without opening the app.
-                  </p>
-                </div>
-              </div>
-            </div>
+            {/* Hardware Trigger — Coming Soon */}
+<div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 mt-2">
+  <div className="flex items-start space-x-2.5">
+    <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+    <div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h4 className="text-xs font-bold text-amber-800">
+          Shake-to-SOS
+        </h4>
+        <span className="text-[9px] font-bold uppercase tracking-wide bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
+          Coming Soon
+        </span>
+      </div>
+      <p className="text-[10px] text-amber-700 leading-relaxed mt-1">
+        Shake-trigger emergency activation is under development.
+      </p>
+    </div>
+  </div>
+</div>
 
           </div>
 
@@ -1104,7 +1108,7 @@ const formatted = reports.map((report: any) => ({
 
         {/* MAIN SCROLLABLE CONTENT AREA */}
         <main className="flex-grow flex flex-col overflow-y-auto relative">
-          
+
           {/* Greeting bar & clock header */}
           <div className="px-6 py-5 border-b border-slate-200 bg-white flex flex-col sm:flex-row justify-between sm:items-center gap-3 shrink-0">
             <div>
@@ -1123,7 +1127,7 @@ const formatted = reports.map((report: any) => ({
                   </p>
                 )}
 
-              
+
             </div>
 
             {/* Right-aligned Live Digital Clock */}
@@ -1144,9 +1148,9 @@ const formatted = reports.map((report: any) => ({
 
           {/* Content Views Workspace */}
           <div className="p-6 space-y-6 flex-grow">
-            
+
             <AnimatePresence mode="wait">
-              
+
               {/* VIEW 1: User Safety Desk */}
               {activeTab === 'User Safety Desk' && (
                 <motion.div
@@ -1157,13 +1161,13 @@ const formatted = reports.map((report: any) => ({
                   transition={{ duration: 0.3 }}
                   className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
                 >
-              
+
               {/* COLUMNS 1 & 2: SAFETY MAP PANEL (spans 8 rows in lg screen layout) */}
               <section className="lg:col-span-8 space-y-6">
-                
+
                 {/* AI Safety Map Panel */}
                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
-                  
+
                   {/* PART E: Acoustic warning banner inside Map Panel */}
                   {globalState.workspaceTint && (
                     <div className="bg-rose-100 border-2 border-rose-400 rounded-2xl p-4 text-rose-900 flex items-center gap-3 animate-pulse shadow-md">
@@ -1186,38 +1190,16 @@ const formatted = reports.map((report: any) => ({
                       </div>
                     </div>
 
-                    {/* Find Nearest Safe Haven Button */}
-                    <button
-                      onClick={handleFindSafeHaven}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center space-x-1.5 self-start sm:self-center"
-                    >
-                      <Compass className="h-3.5 w-3.5" />
-                      <span>Find Nearest Safe Haven</span>
-                    </button>
+
                   </div>
 
-                  {/* Safe Haven locked Info block */}
-                  {safeHavenLocked && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800 flex items-start space-x-2.5 animate-pulse">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="font-bold">Destination Locked: Nearest Police Booth</p>
-                        <p className="text-[11px] mt-0.5 text-emerald-700">200 meters away. Estimated walk: 4 minutes.</p>
-                      </div>
-                      <button 
-                        onClick={() => setSafeHavenLocked(false)}
-                        className="ml-auto text-emerald-500 hover:text-emerald-800 font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
+
 
                   {/* Map and Explainable AI Insights Card layout */}
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                    
+                  <div className="grid grid-cols-1 gap-6 w-full">
+
                     {/* Live Map Container */}
-<div className="xl:col-span-8">
+<div className="col-span-1 xl:col-span-12 w-full min-w-0">
   {location && (
     <>
       <LiveMap
@@ -1233,176 +1215,15 @@ const formatted = reports.map((report: any) => ({
     </>
   )}
 </div>
+</div>
+</div>
 
-                    {/* Explainable AI Insights Card */}
-                    <div className="xl:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-4.5 flex flex-col justify-between shadow-sm">
-                      <div>
-                        <div className="flex items-center space-x-2 text-[#6C3EFF] mb-3">
-                          <Sparkles className="h-4 w-4 animate-pulse" />
-                          <h4 className="font-display font-extrabold text-xs sm:text-sm tracking-tight text-slate-800">AI Reasoning</h4>
-                        </div>
-                        
-                        <ul className="space-y-2.5 text-xs text-slate-600 font-semibold">
-                          <li className="flex items-start gap-1.5">
-                            <span className="text-emerald-500 font-bold">✓</span>
-                            <span>High crowd density detected on Route A</span>
-                          </li>
-                          <li className="flex items-start gap-1.5">
-                            <span className="text-emerald-500 font-bold">✓</span>
-                            <span>Well-lit roads confirmed via satellite lighting index</span>
-                          </li>
-                          <li className="flex items-start gap-1.5">
-                            <span className="text-emerald-500 font-bold">✓</span>
-                            <span>Nearest safe haven: Police Booth (200m)</span>
-                          </li>
-                          <li className="flex items-start gap-1.5">
-                            <span className="text-emerald-500 font-bold">✓</span>
-                            <span>Time: 8PM — historically safer in this zone</span>
-                          </li>
-                        </ul>
-                      </div>
 
-                      <div className="mt-4 pt-3 border-t border-slate-200/60 space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Confidence Score:</span>
-                          <span className="font-extrabold text-[#6C3EFF]">{globalState.systemStatus.aiConfidence}%</span>
-                        </div>
-
-                        {/* Risk Prediction Meter */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className={`${globalState.systemStatus.riskScore > 60 ? 'text-red-600 animate-pulse' : 'text-emerald-600'}`}>
-                              {globalState.systemStatus.riskScore > 60 
-                                ? `Current Risk: 🔴 High (${globalState.systemStatus.riskScore}/100)` 
-                                : `Current Risk: 🟢 Low (${globalState.systemStatus.riskScore}/100)`}
-                            </span>
-                          </div>
-                          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 ease-out ${
-                                globalState.systemStatus.riskScore > 60 ? 'bg-red-500' : 'bg-emerald-500'
-                              }`}
-                              style={{ width: `${globalState.systemStatus.riskScore}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* EXPLAINABLE AI PANEL */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm border-t-4 border-[#6C3EFF] overflow-hidden">
-                  <button
-                    onClick={() => setAiDecisionExpanded(!aiDecisionExpanded)}
-                    className="w-full flex items-center justify-between p-5 bg-slate-50/70 hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-2.5">
-                      <div className="bg-[#6C3EFF]/10 p-2 rounded-xl text-[#6C3EFF]">
-                        <Sparkles className="h-4 w-4 animate-pulse" />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="font-display font-extrabold text-sm text-slate-900">How the AI Made This Decision</h4>
-                        <p className="text-[10px] text-slate-500 font-medium">Explainable AI (XAI) routing timeline & safety heuristics</p>
-                      </div>
-                    </div>
-                    {aiDecisionExpanded ? (
-                      <ChevronUp className="h-4.5 w-4.5 text-slate-500" />
-                    ) : (
-                      <ChevronDown className="h-4.5 w-4.5 text-slate-500" />
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {aiDecisionExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="border-t border-slate-200/60"
-                      >
-                        <div className="p-5 space-y-4">
-                          
-                          {/* Part F: Live Pipeline Sequence display */}
-                          {globalState.audioMonitor.status === 'alert' && (
-                            <div className="bg-purple-50 border border-purple-200 p-3.5 rounded-2xl mb-4 text-xs font-bold text-[#6C3EFF] flex items-center gap-2 animate-pulse shadow-sm">
-                              <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
-                              <span>Live Sequence: Acoustic Intent Matching (99%) → Bhashini NLP Active → Emergency Node Initializing...</span>
-                            </div>
-                          )}
-
-                          {/* Step-by-step reasoning timeline */}
-                          <div className="relative border-l-2 border-slate-200 pl-6 ml-3 space-y-5">
-                            {/* Step 1 */}
-                            <div className="relative">
-                              <span className="absolute -left-8 top-1 bg-white border-2 border-slate-300 w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              </span>
-                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Step 1 — Raw Input</h5>
-                              <p className="text-xs font-semibold text-slate-700 mt-0.5">GPS signal + current time (8:47 PM)</p>
-                            </div>
-                            {/* Step 2 */}
-                            <div className="relative">
-                              <span className="absolute -left-8 top-1 bg-white border-2 border-slate-300 w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              </span>
-                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Step 2 — Crowd Density Model</h5>
-                              <p className="text-xs font-semibold text-slate-700 mt-0.5">Route A density index = 0.84 (High)</p>
-                            </div>
-                            {/* Step 3 */}
-                            <div className="relative">
-                              <span className="absolute -left-8 top-1 bg-white border-2 border-slate-300 w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              </span>
-                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Step 3 — Lighting Index API</h5>
-                              <p className="text-xs font-semibold text-slate-700 mt-0.5">Route A illumination = 89/100</p>
-                            </div>
-                            {/* Step 4 */}
-                            <div className="relative">
-                              <span className="absolute -left-8 top-1 bg-white border-2 border-slate-300 w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              </span>
-                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Step 4 — Historical Crime Data</h5>
-                              <p className="text-xs font-semibold text-slate-700 mt-0.5">MP Nagar — 0 incidents in last 30 days</p>
-                            </div>
-                            {/* Step 5 */}
-                            <div className="relative">
-                              <span className="absolute -left-8 top-1 bg-white border-2 border-slate-300 w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              </span>
-                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Step 5 — Safe Haven Lookup</h5>
-                              <p className="text-xs font-semibold text-slate-700 mt-0.5">Police Booth at 200m (open 24/7)</p>
-                            </div>
-                            {/* Step 6 */}
-                            <div className="relative">
-                              <span className="absolute -left-8 top-1 bg-white border-2 border-[#6C3EFF] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                                <span className="w-2 h-2 rounded-full bg-[#6C3EFF]" />
-                              </span>
-                              <h5 className="text-[11px] font-black uppercase tracking-wider text-[#6C3EFF]">Step 6 — Final Safety Score</h5>
-                              <p className="text-xs font-extrabold text-[#6C3EFF] mt-0.5 bg-purple-50 inline-block px-2 py-0.5 rounded-md">
-                                92/100 → Recommended Route: A
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Footer */}
-                          <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 font-bold">
-                            <span>SwaShakti Safety Score Engine v2.1</span>
-                            <span>Bhashini NLP + OpenStreetMap</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
 
                 {/* LIVE GUARDIAN TRANSIT CARD */}
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm border-t-4 border-[#6C3EFF]">
   <div className="flex flex-col gap-4">
-    
+
     <div className="flex items-start space-x-3.5">
       <div className="bg-[#6C3EFF]/10 p-2.5 rounded-2xl text-[#6C3EFF] mt-1 shrink-0">
         <Car className="h-6 w-6" />
@@ -1571,7 +1392,7 @@ const formatted = reports.map((report: any) => ({
   </div>
 
                   {/* Warning Alerts for Deviation */}
-                  
+
 {/* REAL GPS ROUTE DEVIATION STATUS */}
 {plannedRoute && (
   <div
@@ -1641,7 +1462,7 @@ const formatted = reports.map((report: any) => ({
         </button>
       </div>
     )}
-    
+
     {deviationResult?.status === "GPS_UNRELIABLE" && (
   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
     <h3 className="font-semibold text-amber-900">
@@ -1665,132 +1486,68 @@ const formatted = reports.map((report: any) => ({
 
               {/* COLUMN 3: EMERGENCY PANEL (spans 4 rows on lg screen) */}
               <section className="lg:col-span-4 space-y-6">
-                
-                {/* 1. AUDIO MONITOR */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-5 border-t-4 border-[#6C3EFF]">
-                  
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="bg-pink-100 p-2 rounded-xl text-pink-600">
-                        <Mic className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-extrabold text-sm text-slate-900">Audio Threat Monitor</h4>
-                        <span className="text-[10px] text-slate-500 block mt-0.5">Microphone Active</span>
-                      </div>
-                    </div>
-                    <span className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
-                      Live
-                    </span>
-                  </div>
 
-                  {/* Waveform Visualization */}
-                  <div className={`border rounded-2xl p-4 flex flex-col items-center justify-center space-y-3 transition-colors duration-500 ${globalState.audioMonitor.status === 'alert' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="flex items-end justify-center space-x-1.5 h-12 w-full max-w-[180px]">
-                      {/* 10 waveform bars */}
-                      {[1.2, 0.7, 1.5, 0.9, 1.3, 0.8, 1.6, 1.1, 1.4, 0.6].map((dur, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-1.5 rounded-full wave-bar transition-colors duration-300 ${globalState.audioMonitor.status === 'alert' ? 'bg-red-600 animate-pulse' : 'bg-pink-500'}`}
-                          style={{ 
-                            height: '100%',
-                            animationDuration: `${dur}s`,
-                            animationDelay: `${i * 0.1}s`
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <p className={`text-[10px] font-mono font-bold text-center uppercase tracking-wider ${globalState.audioMonitor.status === 'alert' ? 'text-red-600 animate-pulse' : 'text-slate-400'}`}>
-                      {globalState.audioMonitor.status === 'alert' ? "🔴 INTENT DETECTED — 'Bachao' (Confidence: 99%)" : "Acoustic Monitor Calibration Wave"}
-                    </p>
-                  </div>
+                {/* Audio Threat Monitor — Coming Soon */}
+<div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm border-t-4 border-[#6C3EFF]">
+  <div className="flex items-start gap-3">
+    <div className="bg-pink-100 p-2 rounded-xl text-pink-600">
+      <Mic className="h-4 w-4" />
+    </div>
 
-                  {/* BHASHINI LANGUAGE PANEL */}
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2 text-[#6C3EFF]">
-                        <Sparkles className="h-4 w-4 animate-pulse" />
-                        <h4 className="font-display font-extrabold text-[12px] text-slate-800">Bhashini Language Panel</h4>
-                      </div>
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowAddLanguageDropdown(!showAddLanguageDropdown)}
-                          className="text-[9px] bg-[#6C3EFF] hover:bg-[#5b32e6] text-white font-black uppercase px-2 py-1 rounded transition-colors cursor-pointer"
-                        >
-                          + Add Language
-                        </button>
+    <div className="flex-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <h4 className="font-display font-extrabold text-sm text-slate-900">
+          Audio Threat Monitor
+        </h4>
+        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
+          Coming Soon
+        </span>
+      </div>
 
-                        {showAddLanguageDropdown && (
-                          <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-200 rounded-xl shadow-lg p-2 z-50 text-xs font-semibold text-slate-700 animate-fade-in space-y-1">
-                            {['Telugu', 'Marathi', 'Kannada', 'Gujarati'].map((lang) => {
-                              const isAlreadyMonitored = monitoredLanguages.some(l => l.name === lang);
-                              return (
-                                <button
-                                  key={lang}
-                                  disabled={isAlreadyMonitored}
-                                  onClick={() => {
-                                    const triggersMap: { [key: string]: string } = {
-                                      'Telugu': 'Sahayam, Kapadandi',
-                                      'Marathi': 'Madat kara, Sod dya',
-                                      'Kannada': 'Sahaya, Bidi',
-                                      'Gujarati': 'Madad karo, Chhodo mane',
-                                    };
-                                    setMonitoredLanguages(prev => [
-                                      ...prev,
-                                      { name: lang, triggers: triggersMap[lang] || 'Distress Call', status: '🟢 Active' }
-                                    ]);
-                                    setShowAddLanguageDropdown(false);
-                                    pushLog(`Bhashini Language added: ${lang}. Acoustic recognition matrix synchronized.`);
-                                  }}
-                                  className={`w-full text-left px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors ${
-                                    isAlreadyMonitored ? 'opacity-50 cursor-not-allowed text-slate-400' : 'cursor-pointer'
-                                  }`}
-                                >
-                                  {lang}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+        Audio-based threat detection and multilingual voice-trigger
+        support are under development. Microphone monitoring is not
+        currently active.
+      </p>
+    </div>
+  </div>
+</div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-[11px] text-slate-600 font-semibold border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-200 text-[9px] text-slate-400 uppercase font-bold">
-                            <th className="pb-1 pr-2">Language</th>
-                            <th className="pb-1 pr-2">Acoustic Triggers</th>
-                            <th className="pb-1 text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 font-medium">
-                          {monitoredLanguages.map((lang, idx) => (
-                            <tr key={idx} className="hover:bg-slate-100/50 transition-colors">
-                              <td className="py-1.5 pr-2 font-bold text-slate-800">{lang.name}</td>
-                              <td className="py-1.5 pr-2 font-mono text-[9px] text-slate-500 italic">"{lang.triggers}"</td>
-                              <td className="py-1.5 text-right">
-                                <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                                  lang.status.includes('Active') ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                                }`}>
-                                  {lang.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
 
-                 
+
+
+{/* Bhashini Language Panel — Coming Soon */}
+<div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+  <div className="flex items-start gap-3">
+    <div className="bg-purple-100 p-2 rounded-xl text-purple-600">
+      <Sparkles className="h-5 w-5" />
+    </div>
+
+    <div className="flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-extrabold text-slate-900">
+          Bhashini Language Panel
+        </h3>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+          Coming Soon
+        </span>
+      </div>
+
+      <p className="mt-2 text-xs leading-relaxed text-slate-500">
+        Multilingual voice assistance and language support are under development.
+        Language selection and acoustic trigger configuration are not yet available.
+      </p>
+    </div>
+  </div>
+</div>
+
+
+
 
                 {/* 3. PANIC SOS MASSIVE TRIGGER CARD */}
                 <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm flex flex-col items-center justify-center text-center space-y-3.5 border-t-4 border-[#6C3EFF]">
                   <span className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">PANIC SOS</span>
-                  
+
                   <div className="relative w-36 h-36 flex items-center justify-center">
                     <div className="absolute inset-0 bg-rose-600/20 rounded-full animate-pulse-red" />
                     <button
@@ -1809,19 +1566,30 @@ const formatted = reports.map((report: any) => ({
                   </p>
                 </div>
 
-                {/* 4. SILENT POLICE ALERT BUTTON */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm border-t-4 border-[#6C3EFF]">
-                  <button
-                    onClick={handleTriggerSilentPolice}
-                    className="w-full bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-xs py-3.5 px-4 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <ShieldAlert className="h-4.5 w-4.5 text-amber-500 animate-pulse" />
-                    <span>Silent Police Alert — Call 112</span>
-                  </button>
-                  <p className="text-[10px] text-slate-400 text-center mt-2 leading-relaxed">
-                    Sends silently encrypted dispatch to city control station matching high priority landmarks.
-                  </p>
-                </div>
+                {/* Police Dispatch Integration — Coming Soon */}
+<div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm border-t-4 border-amber-400">
+  <div className="flex items-start gap-3">
+    <div className="bg-amber-50 p-2 rounded-xl text-amber-600">
+      <ShieldAlert className="h-5 w-5" />
+    </div>
+
+    <div className="flex-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <h4 className="text-sm font-extrabold text-slate-900">
+          Police Dispatch Integration
+        </h4>
+        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
+          Coming Soon
+        </span>
+      </div>
+
+      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+        Direct police dispatch integration is under development.
+        This feature does not currently send alerts directly to police.
+      </p>
+    </div>
+  </div>
+</div>
 
               </section>
 
@@ -1857,16 +1625,20 @@ const formatted = reports.map((report: any) => ({
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                 <FamilyTrackingView
-  profile={profile}
-  liveLocation={globalState.liveLocation}
-  emergencyContacts={globalState.emergencyContacts}
-  onFamilyCallUser={handleFamilyCallUser}
-  onFamilySendMessage={handleFamilySendMessage}
-  onFamilyEscalate={handleFamilyEscalate}
-  timeStr={timeStr}
-  riskScore={globalState.systemStatus.riskScore}
-/>
+                 <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center shadow-sm">
+  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+    <ShieldAlert className="h-7 w-7" />
+  </div>
+  <h2 className="text-xl font-extrabold text-slate-900">
+    Family Live Tracking
+  </h2>
+  <span className="mt-3 inline-block rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+    Coming Soon
+  </span>
+  <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-500">
+    Secure family access and authorized live-location sharing are under development.
+  </p>
+</div>
                 </motion.div>
               )}
 
@@ -1892,13 +1664,20 @@ const formatted = reports.map((report: any) => ({
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <PoliceDispatchView
-  activeAlertsCount={activeAlertsCount}
-  policeAlerts={globalState.policeAlerts}
-  liveLocation={globalState.liveLocation}
-  onAcknowledgeAlert={handleAcknowledgeAlert}
-  onDispatchUnit={handleDispatchUnit}
-/>
+                  <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center shadow-sm">
+  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+    <ShieldAlert className="h-7 w-7" />
+  </div>
+  <h2 className="text-xl font-extrabold text-slate-900">
+    Police Dispatch
+  </h2>
+  <span className="mt-3 inline-block rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+    Coming Soon
+  </span>
+  <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-500">
+    Verified emergency dispatch workflows and official police integration are under development.
+  </p>
+</div>
                 </motion.div>
               )}
 
@@ -1911,7 +1690,7 @@ const formatted = reports.map((report: any) => ({
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <SwaShaktiAnalyticsView aiConfidence={globalState.systemStatus.aiConfidence} />
+                  <SwaShaktiAnalyticsView />
                 </motion.div>
               )}
 
@@ -1929,7 +1708,7 @@ const formatted = reports.map((report: any) => ({
           </footer>
 
 {showActiveSOSModal && (
-<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+<div className="fixed inset-0 z-[2147483646] flex items-center justify-center bg-black/60">
 
 <div className="bg-white rounded-3xl w-[420px] p-8 shadow-2xl">
 
@@ -2010,59 +1789,10 @@ Press & Hold to Resolve
 
       </div>
 
-      {/* PART A: FIXED FLOATING TELEMETRY TOGGLE BUTTON */}
-      <button
-        onClick={() => updateState({ isTerminalOpen: !globalState.isTerminalOpen })}
-        className="fixed bottom-6 left-6 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-full px-4 py-2.5 shadow-2xl text-xs font-mono font-bold z-50 flex items-center gap-2 border border-emerald-500/30 transition-all active:scale-95 cursor-pointer"
-      >
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span>⚙ AI Telemetry</span>
-      </button>
 
-      {/* PART A: THE SLIDE-OUT TELEMETRY DRAWER */}
-      <div 
-        className={`fixed left-0 top-0 h-full w-[420px] max-w-[100vw] bg-slate-950/95 border-r border-slate-800 z-50 shadow-2xl transition-transform duration-300 ease-in-out transform flex flex-col ${
-          globalState.isTerminalOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-          <div>
-            <h3 className="text-emerald-400 font-mono text-sm font-black uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              SwaShakti AI Telemetry
-            </h3>
-            <p className="text-slate-500 text-xs mt-0.5 font-mono">Live backend pipeline logs</p>
-          </div>
-          <button 
-            onClick={() => updateState({ isTerminalOpen: false })}
-            className="text-slate-400 hover:text-white bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/50 transition-all cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Drawer Terminal Content */}
-        <div className="flex-1 bg-slate-900 text-emerald-400 font-mono text-[11px] p-4 overflow-y-auto space-y-1.5">
-          {logs.map((log: string, index: number) => {
-            const isAlert = log.includes('🚨') || log.includes('WARNING') || log.includes('EMERGENCY') || log.includes('ANOMALY');
-            const isTrigger =
-  log.includes('🎙️') ||
-  log.includes('⏳') ||
-  log.includes('[SOS]');
-            const colorClass = isAlert ? 'text-rose-400 font-bold' : isTrigger ? 'text-amber-400' : 'text-emerald-400';
-            return (
-              <div key={index} className={`leading-relaxed ${colorClass}`}>
-                {log}
-              </div>
-            );
-          })}
-          <div ref={terminalEndRef} />
-        </div>
-      </div>
 
       <AISafetyAssistant riskData={selectedRisk} />
-              
+
          </div>
   );
 }

@@ -18,59 +18,39 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import {
+  getCommunityReportAnalytics,
+  type DailyCommunityReportCount,
+} from "../services/analytics";
 
-const communityReportsData = [
-  { name: 'Mon', Reports: 8 },
-  { name: 'Tue', Reports: 14 },
-  { name: 'Wed', Reports: 11 },
-  { name: 'Thu', Reports: 19 },
-  { name: 'Fri', Reports: 9 },
-  { name: 'Sat', Reports: 23 },
-  { name: 'Sun', Reports: 17 }
-];
+
 
 
 const riskColors = ['#10b981', '#f59e0b', '#ef4444'];
 
-const accuracyData = [
-  { name: '1h', Accuracy: 88 },
-  { name: '2h', Accuracy: 89 },
-  { name: '3h', Accuracy: 91 },
-  { name: '4h', Accuracy: 91 },
-  { name: '5h', Accuracy: 93 },
-  { name: '6h', Accuracy: 94 },
-  { name: '7h', Accuracy: 95 },
-  { name: '8h', Accuracy: 96 }
-];
 
-const guardianActivationsData = [
-  { name: 'Mon', Activations: 5 },
-  { name: 'Tue', Activations: 8 },
-  { name: 'Wed', Activations: 6 },
-  { name: 'Thu', Activations: 12 },
-  { name: 'Fri', Activations: 9 },
-  { name: 'Sat', Activations: 14 },
-  { name: 'Sun', Activations: 7 }
-];
 
-interface SwaShaktiAnalyticsViewProps {
-  aiConfidence?: number;
-}
 
-export default function SwaShaktiAnalyticsView({
-  aiConfidence = 96,
-}: SwaShaktiAnalyticsViewProps) {
+
+export default function SwaShaktiAnalyticsView() {
   const [cityRisk, setCityRisk] = useState<CityRisk[]>([]);
   const [loadingRisk, setLoadingRisk] = useState(true);
   const [riskError, setRiskError] = useState<string | null>(null);
+
+  const [communityReports, setCommunityReports] = useState<
+  DailyCommunityReportCount[]
+>([]);
+const [loadingReports, setLoadingReports] = useState(true);
+const [reportsError, setReportsError] = useState<string | null>(null);
+
 
   useEffect(() => {
     async function loadCityRisk() {
       try {
         setLoadingRisk(true);
+        setRiskError(null);
 
         const data = await getCityRisk();
-
         setCityRisk(data);
       } catch (error) {
         console.error("Failed to load city risk:", error);
@@ -82,6 +62,41 @@ export default function SwaShaktiAnalyticsView({
 
     loadCityRisk();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCommunityReports() {
+      try {
+        setLoadingReports(true);
+        setReportsError(null);
+
+        const data = await getCommunityReportAnalytics();
+
+        if (!cancelled) {
+          setCommunityReports(data);
+        }
+      } catch (error) {
+        console.error("Failed to load community report analytics:", error);
+
+        if (!cancelled) {
+          setReportsError("Unable to load community report analytics");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingReports(false);
+        }
+      }
+    }
+
+    loadCommunityReports();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
 
     const riskLevelData = [
     {
@@ -110,60 +125,7 @@ export default function SwaShaktiAnalyticsView({
         </div>
       </div>
 
-      {/* PART F: SwaShakti AI Engine Confidence Indicator */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm border-t-4 border-[#6C3EFF] flex flex-col items-center justify-center text-center space-y-4 max-w-xl mx-auto">
-        <div className="space-y-1">
-          <h4 className="font-display font-black text-slate-900 text-sm tracking-tight uppercase">
-            SwaShakti AI Engine Confidence Indicator
-          </h4>
-          <p className="text-[10px] text-slate-500 font-medium">Real-time composite score of multi-lingual NLP + crowd density parameters</p>
-        </div>
 
-        {/* Circular Gauge */}
-        <div className="relative w-36 h-36 flex items-center justify-center">
-          {/* Outer circle track */}
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              stroke="#f1f5f9"
-              strokeWidth="8"
-              fill="transparent"
-            />
-            {/* Dynamic gauge fill */}
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              stroke="#6C3EFF"
-              strokeWidth="8"
-              fill="transparent"
-              strokeDasharray={251.2}
-              strokeDashoffset={251.2 - (251.2 * aiConfidence) / 100}
-              strokeLinecap="round"
-              className="transition-all duration-1000 ease-out"
-            />
-          </svg>
-
-          {/* Centered value */}
-          <div className="absolute flex flex-col items-center justify-center">
-            <span className="text-3xl font-black text-slate-800">{aiConfidence}%</span>
-            <div className="flex items-center gap-1.5 mt-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[8px] uppercase font-bold text-emerald-700 tracking-wider font-mono">Active Sync</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-[10px] text-slate-500 font-semibold italic flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-2xl">
-          <span>Active Telemetry Status:</span>
-          <span className="flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${aiConfidence > 90 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
-            {aiConfidence > 90 ? 'EXCELLENT' : 'OPTIMAL'} (v2.1 Engine)
-          </span>
-        </div>
-      </div>
 
       {/* City Risk Overview */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm border-t-4 border-[#6C3EFF]">
@@ -173,7 +135,7 @@ export default function SwaShaktiAnalyticsView({
               City Risk Overview
             </h4>
             <p className="text-xs text-slate-500 mt-1">
-              Public reference data used for development and risk analysis
+              Combined public-reference data and submitted community reports
             </p>
           </div>
 
@@ -256,97 +218,118 @@ export default function SwaShaktiAnalyticsView({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
         {/* 1. LineChart — Community Reports */}
         <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
           <div className="flex items-center gap-2">
             <Compass className="h-4.5 w-4.5 text-[#6C3EFF]" />
-            <h4 className="font-display font-extrabold text-sm text-slate-800">Community Reports (Last 7 Days)</h4>
+            <h4 className="font-display font-extrabold text-sm text-slate-800">
+              Community Reports (Last 7 Days)
+            </h4>
           </div>
-          <div className="h-[200px] w-full font-mono text-[10px] font-bold">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={communityReportsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip />
-                <Line type="monotone" dataKey="Reports" stroke="#6C3EFF" strokeWidth={3} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* 2. PieChart — Risk Level Distribution */}
-        <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4.5 w-4.5 text-rose-500" />
-            <h4 className="font-display font-extrabold text-sm text-slate-800">Risk Level Distribution</h4>
-          </div>
-          <div className="h-[200px] w-full font-mono text-[10px] font-bold flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={riskLevelData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={70}
-                  paddingAngle={4}
-                  dataKey="value"
+          {loadingReports ? (
+            <div className="h-[200px] flex items-center justify-center text-sm text-slate-500">
+              Loading community reports...
+            </div>
+          ) : reportsError ? (
+            <div className="h-[200px] flex items-center justify-center text-sm text-red-500">
+              {reportsError}
+            </div>
+          ) : (
+            <div className="h-[200px] w-full font-mono text-[10px] font-bold">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={communityReports.map((item) => ({
+                    name: new Date(`${item.date}T12:00:00`).toLocaleDateString(
+                      "en-IN",
+                      { day: "2-digit", month: "short" }
+                    ),
+                    Reports: item.count,
+                  }))}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
-                  {riskLevelData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={riskColors[index % riskColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={24} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" />
+                  <YAxis allowDecimals={false} stroke="#94a3b8" />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="Reports"
+                    stroke="#6C3EFF"
+                    strokeWidth={3}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
-        {/* 3. AreaChart — AI Accuracy Over Time */}
-        <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-emerald-500" />
-            <h4 className="font-display font-extrabold text-sm text-slate-800">AI Accuracy Over Time (Hours)</h4>
-          </div>
-          <div className="h-[200px] w-full font-mono text-[10px] font-bold">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={accuracyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" domain={[80, 100]} />
-                <Tooltip />
-                <Area type="monotone" dataKey="Accuracy" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorAccuracy)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* 4. BarChart — Guardian Mode Activations */}
-        <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4.5 w-4.5 text-indigo-500" />
-            <h4 className="font-display font-extrabold text-sm text-slate-800">Guardian Mode Activations (This Week)</h4>
-          </div>
-          <div className="h-[200px] w-full font-mono text-[10px] font-bold">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={guardianActivationsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip />
-                <Bar dataKey="Activations" fill="#6C3EFF" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+
+{/* 2. City Risk Distribution — Coming Soon */}
+<div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
+  <div className="flex items-center gap-2">
+    <AlertTriangle className="h-4.5 w-4.5 text-rose-500" />
+    <div>
+      <h4 className="font-display font-extrabold text-sm text-slate-800">
+        City Risk Distribution
+      </h4>
+      <p className="text-xs text-slate-500 mt-1">
+        City-level risk distribution is being validated.
+      </p>
+    </div>
+  </div>
+
+  <div className="h-[200px] flex flex-col items-center justify-center text-center gap-2">
+    <AlertTriangle className="h-8 w-8 text-slate-300" />
+    <p className="text-sm font-bold text-slate-600">Coming Soon</p>
+    <p className="text-xs text-slate-400 max-w-xs">
+      This visualization will be available after city-level data
+      quality and risk classifications have been validated.
+    </p>
+  </div>
+</div>
+
+
+        {/* 3. AI Accuracy — Coming Soon */}
+<div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-emerald-500">
+  <div className="flex items-center gap-2">
+    <Sparkles className="h-4.5 w-4.5 text-emerald-500" />
+    <h4 className="font-display font-extrabold text-sm text-slate-800">
+      AI Accuracy Over Time
+    </h4>
+  </div>
+
+  <div className="h-[200px] flex flex-col items-center justify-center text-center gap-2">
+    <Sparkles className="h-8 w-8 text-slate-300" />
+    <p className="text-sm font-bold text-slate-600">Coming Soon</p>
+    <p className="text-xs text-slate-400 max-w-xs">
+      Accuracy tracking will be available when AI predictions can be
+      evaluated against verified outcomes.
+    </p>
+  </div>
+</div>
+
+        {/* 4. Guardian Mode Activations — Coming Soon */}
+<div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4 border-t-4 border-[#6C3EFF]">
+  <div className="flex items-center gap-2">
+    <Activity className="h-4.5 w-4.5 text-[#6C3EFF]" />
+    <h4 className="font-display font-extrabold text-sm text-slate-800">
+      Guardian Mode Activations (This Week)
+    </h4>
+  </div>
+
+  <div className="h-[200px] flex flex-col items-center justify-center text-center gap-2">
+    <Activity className="h-8 w-8 text-slate-300" />
+    <p className="text-sm font-bold text-slate-600">Coming Soon</p>
+    <p className="text-xs text-slate-400 max-w-xs">
+      Activation analytics will be available when real Guardian Mode
+      events are recorded.
+    </p>
+  </div>
+           </div>
       </div>
     </div>
   );

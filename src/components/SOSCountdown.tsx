@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface SOSCountdownProps {
   onComplete: () => void;
@@ -25,8 +26,8 @@ export default function SOSCountdown({
  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [count]);
 
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+  return createPortal(
+  <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60">
       <div className="bg-white rounded-2xl shadow-xl p-8 text-center w-96">
         <h2 className="text-2xl font-bold text-red-600 mb-3">
           🚨 Emergency SOS
@@ -46,7 +47,8 @@ export default function SOSCountdown({
         >
           Cancel
         </button>
-      </div>
-    </div>
+          </div>
+    </div>,
+    document.body
   );
 }

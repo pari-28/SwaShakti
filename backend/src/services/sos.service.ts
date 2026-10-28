@@ -24,12 +24,12 @@ class SOSService {
       message?: string;
     }
   ) {
-    console.log("✅ SOSService.create() called");
+
     const { latitude, longitude, message } = data;
 
     // Check if user already has an active SOS
-   
-    
+
+
 
     const existingSOS = await prisma.sOSAlert.findFirst({
       where: {
@@ -37,11 +37,11 @@ class SOSService {
         status: SOSStatus.ACTIVE,
       },
     });
-console.log("Existing SOS:", existingSOS);
+
 
 
     if (existingSOS) {
-  console.log("🔥 THROWING 409 - Active SOS exists");
+
   throw new ApiError(409, "An active SOS already exists.");
 }
 
@@ -58,21 +58,17 @@ console.log("Existing SOS:", existingSOS);
 });
 
 
-console.log("✅ Created SOS:", sos);
 
-const verifySOS = await prisma.sOSAlert.findUnique({
-  where: {
-    id: sos.id,
-  },
-});
 
-console.log("✅ Verify SOS:", verifySOS);
+
+
+
 
 
 // Fetch emergency contacts
 const emergencyContacts = await this.getEmergencyContacts(userId);
 
-console.log("Emergency Contacts:", emergencyContacts);
+
 
 
 // Get user's FCM token
@@ -84,7 +80,7 @@ const user = await prisma.user.findUnique({
 
 
 if (user?.fcmToken) {
-  console.log("Sending notification...");
+
 
   try {
     const response = await NotificationService.sendPushNotification(
@@ -93,25 +89,21 @@ if (user?.fcmToken) {
       "Emergency detected. Help is being notified."
     );
 
-    console.log("FCM Response:", response);
+
   } catch (error) {
-    console.error("FCM Error:", error);
+    console.error("Failed to send SOS push notification.");
   }
 }
 
 // Send SOS email to all emergency contacts
 for (const contact of emergencyContacts) {
   if (!contact.email) {
-    console.log(
-      `⚠️ No email configured for ${contact.name}`
-    );
+
     continue;
   }
 
   try {
-    console.log(
-      `📧 Sending SOS email to ${contact.name} (${contact.email})`
-    );
+
 
     const response = await EmailService.sendSOSAlert(
       contact.email,
@@ -122,15 +114,9 @@ for (const contact of emergencyContacts) {
       message
     );
 
-    console.log(
-      `✅ SOS email sent to ${contact.email}`,
-      response.messageId
-    );
+
   } catch (error) {
-    console.error(
-      `❌ Failed to send SOS email to ${contact.email}:`,
-      error
-    );
+    console.error("Failed to send an SOS email to an emergency contact.");
   }
 }
 
@@ -138,17 +124,7 @@ for (const contact of emergencyContacts) {
 try {
   const io = getIO();
 
-  console.log(
-  "EMITTING:",
-  JSON.stringify(
-    {
-      sos,
-      contacts: emergencyContacts,
-    },
-    null,
-    2
-  )
-);
+
 
   io.to(`family:${userId}`).emit("sos-created", {
   sos,
@@ -158,7 +134,7 @@ try {
 
 
 } catch (error) {
-  console.error("Socket broadcast failed:", error);
+  console.error("Socket broadcast failed during SOS creation.");
 }
 
 return {
@@ -168,12 +144,12 @@ return {
 }
 
     static async getActive(userId: string) {
-    
-    
 
-    
 
-    
+
+
+
+
 
     const sos = await prisma.sOSAlert.findFirst({
         where: {
@@ -182,7 +158,7 @@ return {
         },
     });
 
-   
+
 
     if (!sos) {
         throw new ApiError(404, "Active SOS not found.");
@@ -229,9 +205,9 @@ try {
     io.to(`family:${userId}`).emit("location-update", updatedSOS);
     io.to(`user:${userId}`).emit("location-update", updatedSOS);
 
-    console.log("📍 Live location broadcasted");
+
 } catch (error) {
-    console.error("Socket broadcast failed:", error);
+    console.error("Socket broadcast failed during location update.");
 }
 
 return updatedSOS;
@@ -270,13 +246,14 @@ try {
     io.to(`family:${userId}`).emit("sos-resolved", updatedSOS);
     io.to(`user:${userId}`).emit("sos-resolved", updatedSOS);
 
-    console.log("✅ SOS resolved broadcasted");
+
 } catch (error) {
-    console.error("Socket broadcast failed:", error);
+    console.error("Socket broadcast failed during SOS resolution.");
 }
 
 return updatedSOS;
     }
+
 static async resend(userId: string, sosId: string) {
   const sos = await prisma.sOSAlert.findFirst({
     where: {
@@ -292,14 +269,45 @@ static async resend(userId: string, sosId: string) {
 
   const emergencyContacts = await this.getEmergencyContacts(userId);
 
-  // Log emergency contacts
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  let emailsSent = 0;
+  const emailErrors: string[] = [];
+
+  // Send a fresh SOS email to each emergency contact with an email address.
   for (const contact of emergencyContacts) {
-    console.log(
-  `${contact.isPrimary ? "⭐" : "📱"} Resending alert to ${contact.name} (${contact.phone})`
-);
+    if (!contact.email) {
+
+      continue;
+    }
+
+    try {
+
+
+      const response = await EmailService.sendSOSAlert(
+        contact.email,
+        contact.name,
+        user?.fullName || "SwaShakti User",
+        sos.latitude,
+        sos.longitude,
+        sos.message
+      );
+
+      emailsSent++;
+
+
+    } catch (error) {
+      console.error("Failed to resend an SOS email to an emergency contact.");
+
+      emailErrors.push(contact.email);
+    }
   }
 
-  // Broadcast resend event through Socket.IO
+  // Broadcast the resend event to connected clients.
   try {
     const io = getIO();
 
@@ -313,16 +321,32 @@ static async resend(userId: string, sosId: string) {
       contacts: emergencyContacts,
     });
 
-    console.log("🚨 SOS alert re-sent via Socket.IO.");
+
   } catch (error) {
-    console.error("Socket broadcast failed:", error);
+    console.error("Socket broadcast failed during SOS resend.");
+  }
+
+  if (emailsSent === 0) {
+    throw new ApiError(
+      502,
+      emailErrors.length > 0
+        ? "Failed to resend SOS emails. Please try again."
+        : "No emergency contacts have email addresses configured."
+    );
   }
 
   return {
     sos,
     emergencyContacts,
+    emailsSent,
+    emailErrors,
+    message:
+      emailErrors.length > 0
+        ? `SOS email sent to ${emailsSent} contact(s); some emails failed.`
+        : `SOS email re-sent successfully to ${emailsSent} contact(s).`,
   };
 }
+
 
     static async getHistory(userId: string) {
         return prisma.sOSAlert.findMany({

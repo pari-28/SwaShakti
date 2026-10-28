@@ -176,3 +176,53 @@ if (nearestDistance > 75) {
 
   return nearestArea;
 }
+
+
+export async function getNearbyRiskAreas(
+  latitude: number,
+  longitude: number,
+  radiusKm = 5
+): Promise<CommunityAreaRisk[]> {
+  const areas = await getCommunityAreaRisk();
+
+  const toRadians = (degrees: number) =>
+    (degrees * Math.PI) / 180;
+
+  const distanceInKm = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ) => {
+    const earthRadiusKm = 6371;
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+
+    return earthRadiusKm * 2 *
+      Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  return areas.filter((area) => {
+    if (
+      area.latitude === null ||
+      area.longitude === null
+    ) {
+      return false;
+    }
+
+    return (
+      distanceInKm(
+        latitude,
+        longitude,
+        area.latitude,
+        area.longitude
+      ) <= radiusKm
+    );
+  });
+}

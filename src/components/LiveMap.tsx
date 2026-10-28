@@ -13,6 +13,7 @@ import { PlannedRoute } from "../types/route";
 import {
   getNearestRiskArea,
   getCommunityAreaRisk,
+  getNearbyRiskAreas,
   CommunityAreaRisk,
 } from "../services/risk";
 import { RouteRiskAnalysis } from "../services/routeRisk";
@@ -99,10 +100,19 @@ const [communityAreas, setCommunityAreas] = useState<
   CommunityAreaRisk[]
 >([]);
 
+const [nearbyRiskAreas, setNearbyRiskAreas] = useState<
+  CommunityAreaRisk[]
+>([]);
+
+
+
 const [loadingRisk, setLoadingRisk] = useState(true);
   const [riskError, setRiskError] = useState<string | null>(null);
 
   const [isAreaRiskExpanded, setIsAreaRiskExpanded] =
+  useState(true);
+
+  const [isNearbyRiskExpanded, setIsNearbyRiskExpanded] =
   useState(true);
 
   const [expandedRouteRiskAreas, setExpandedRouteRiskAreas] =
@@ -121,8 +131,16 @@ useEffect(() => {
         location.longitude
       );
 
+      const nearbyAreas = await getNearbyRiskAreas(
+  location.latitude,
+  location.longitude,
+  25
+);
+
+
       if (!cancelled) {
         setNearestRisk(data);
+        setNearbyRiskAreas(nearbyAreas);
 
         onRiskLocationChange?.(data);
 
@@ -488,7 +506,7 @@ const activeRiskSource =
           </Circle>
         );
       })}
-  
+
       </MapContainer>
 
       {/* City Risk Card */}
@@ -658,9 +676,159 @@ const activeRiskSource =
 )}
  </>
 )}
+
+      </div>
+
+      {/* Nearby Risk Summary */}
+      <div
+        style={{
+          position: "absolute",
+          top: "16px",
+          left: "16px",
+          zIndex: 1000,
+          minWidth: "190px",
+          maxWidth: "230px",
+          padding: "14px 16px",
+          borderRadius: "16px",
+          background: "white",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+        }}
+      >
+
+
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+    marginBottom: isNearbyRiskExpanded ? "8px" : "0",
+  }}
+>
+  <div
+    style={{
+      fontSize: "11px",
+      fontWeight: 700,
+      color: "#64748b",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+    }}
+  >
+    Nearby Risk · 25 km
+  </div>
+
+  <button
+    type="button"
+    onClick={() =>
+      setIsNearbyRiskExpanded((previous) => !previous)
+    }
+    aria-label={
+      isNearbyRiskExpanded
+        ? "Collapse nearby risk"
+        : "Expand nearby risk"
+    }
+    style={{
+      width: "24px",
+      height: "24px",
+      flexShrink: 0,
+      borderRadius: "8px",
+      border: "1px solid #e2e8f0",
+      background: "#f8fafc",
+      color: "#475569",
+      fontSize: "16px",
+      fontWeight: 800,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      lineHeight: 1,
+    }}
+  >
+    {isNearbyRiskExpanded ? "−" : "+"}
+  </button>
+</div>
+
+
+        {isNearbyRiskExpanded && (
+  <>
+    {loadingRisk ? (
+          <div style={{ fontSize: "13px", color: "#64748b" }}>
+            Loading nearby areas...
+          </div>
+        ) : nearbyRiskAreas.length === 0 ? (
+          <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+            No geolocated risk areas found within 25 km.
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: 800,
+                color: "#0f172a",
+              }}
+            >
+              {nearbyRiskAreas.length}
+            </div>
+
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#64748b",
+                marginBottom: "10px",
+              }}
+            >
+              risk areas with coordinates
+            </div>
+
+            {nearbyRiskAreas.slice(0, 3).map((area) => (
+              <div
+                key={`${area.location}-${area.latitude}-${area.longitude}`}
+                style={{
+                  borderTop: "1px solid #f1f5f9",
+                  paddingTop: "7px",
+                  paddingBottom: "7px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "#334155",
+                  }}
+                >
+                  {area.location}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color:
+                      area.riskLevel === "HIGH"
+                        ? "#b91c1c"
+                        : area.riskLevel === "MEDIUM"
+                        ? "#b45309"
+                        : "#047857",
+                  }}
+                >
+                  {area.riskLevel} · {area.incidentCount} incidents
+                </div>
+              </div>
+            ))}
+
+            {nearbyRiskAreas.length > 3 && (
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                +{nearbyRiskAreas.length - 3} more areas
+              </div>
+            )}
+          </>
+               )}
+  </>
+)}
       </div>
 
     </div>
-    
+
+
   );
 }

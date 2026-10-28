@@ -16,6 +16,7 @@ import riskRoutes from "./routes/risk.routes";
 import aiRoutes from "./routes/ai.routes";
 import communityReportRoutes from "./routes/communityReport.routes";
 import locationRoutes from "./routes/location.routes";
+import analyticsRoutes from "./routes/analytics.routes";
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/risk", riskRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/community-reports", communityReportRoutes);
 app.use("/api/location", locationRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 
 // Global error handler

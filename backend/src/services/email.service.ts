@@ -29,6 +29,8 @@ class EmailService {
       timeZone: "Asia/Kolkata",
     });
 
+
+
     return await transporter.sendMail({
       from: `"SwaShakti Emergency Alert" <${process.env.EMAIL_USER}>`,
       to,
@@ -107,6 +109,10 @@ This is an automated SwaShakti emergency notification.
         </p>
       `,
     });
+
+
+
+return info;
   }
 }
 

@@ -1,5 +1,5 @@
 # 🛡️ SwaShakti
-### AI-Powered Women's Safety Operating System
+## AI-Assisted Women's Safety Platform
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
@@ -14,164 +14,147 @@
 
 > **Empowering Every Journey with Intelligent Safety.**
 
-SwaShakti is a full-stack women's safety platform designed to provide proactive protection, real-time emergency response, secure evidence collection, and community-driven safety intelligence.
+SwaShakti is a full-stack women's safety web application designed to support emergency response, location sharing, evidence collection, and community-driven safety intelligence.
 
-Built as part of **Build for Good 2026**, SwaShakti combines modern web technologies with geospatial intelligence and AI-driven concepts to help users stay safer before, during, and after emergencies.
+Developed for **Build for Good 2026**, the project combines a React frontend, a Node.js/Express backend, PostgreSQL data storage, real-time communication, cloud media storage, and safety-risk visualizations.
 
----
-
-# 🌐 Live Demo
-
-### 🚀 Frontend
-https://swa-shakti-rho.vercel.app
-
-### ❤️ Health Check
-https://swa-shakti.onrender.com/health
+> **Safety notice:** SwaShakti is a support tool, not a replacement for emergency services. Risk indicators and route information are advisory and cannot guarantee that a place or journey is safe.
 
 ---
 
-# 🌟 Problem Statement
+## 🌐 Live Demo
 
-Traditional emergency applications only become useful **after** an emergency begins.
+- **Frontend:** https://swa-shakti-rho.vercel.app
+- **Backend health check:** https://swa-shakti.onrender.com/health
 
-During critical situations users often need to:
-
-- Unlock their phone
-- Call emergency contacts
-- Share their live location
-- Explain their surroundings
-- Wait for assistance
-
-These extra steps consume valuable time.
-
-SwaShakti aims to reduce response time by combining emergency response, live tracking, secure evidence collection, and community safety intelligence into one platform.
+Availability depends on the deployment and its configured services.
 
 ---
 
-# 💡 Our Solution
+## 🎯 Problem Statement
 
-SwaShakti is an AI-inspired safety platform that combines emergency response, live tracking, secure evidence collection, and community intelligence into a unified safety ecosystem.
+During a safety incident, a person may need to contact trusted people, share their location, and preserve relevant evidence quickly. Switching between separate tools can add friction during a stressful situation.
 
-The platform focuses on reducing emergency response time while laying the foundation for intelligent, AI-assisted safety recommendations in future versions.
+SwaShakti brings emergency alerts, emergency-contact management, location sharing, evidence upload, and community safety information into one application.
 
----
+## 💡 Solution
 
-# 🌍 Why SwaShakti?
+SwaShakti provides a unified interface for:
+- Triggering and managing an SOS session
+- Notifying configured emergency contacts by email
+- Sharing location information during an SOS
+- Managing emergency contacts
+- Uploading evidence to cloud storage
+- Reporting community incidents
+- Viewing location-related risk information and analytics
 
-Unlike conventional emergency applications that react only after an incident occurs, SwaShakti aims to proactively improve user safety through real-time monitoring, community intelligence, secure evidence collection, and a roadmap toward AI-assisted decision making.
-
-Our vision is to transform women's safety from a reactive process into a proactive ecosystem.
-
----
-
-# ✅ Implemented Features
-
-## 🚨 Smart SOS
-- One-tap emergency activation
-- Live GPS location capture
-- Active SOS session management
-- Emergency contact notification workflow
+Some advanced safety and AI capabilities remain under development; see [Current Capabilities and Roadmap](#-current-capabilities-and-roadmap).
 
 ---
 
-## 📍 Live Location Tracking
-- Real-time location updates
-- Socket.IO communication
-- Live location broadcasting
-- Continuous location monitoring
+## ✅ Implemented Features
 
----
+### 🚨 SOS and Emergency Email Alerts
+- SOS activation and active-session management
+- Location capture and location details in emergency notifications
+- Email notifications to configured emergency contacts
+- Resend emergency alert email workflow
+- SOS status updates and real-time event communication
 
-## 👨‍👩‍👧 Emergency Contacts
-- Add multiple emergency contacts
-- Guardian information management
-- Secure PostgreSQL storage
-- Quick SOS integration
+Email delivery depends on valid backend email configuration and the recipient's mail service.
 
----
+### 📍 Location and Real-Time Communication
+- Browser-based location access when permission is granted
+- Socket.IO communication for real-time updates
+- Live location sharing as supported by the active SOS workflow
+- Location-aware risk information
 
-## 🎤 Secure Evidence Vault
-- Upload image, audio and video evidence
-- Cloudinary secure storage
-- Evidence linked to active SOS
-- Timestamped evidence records
-- PostgreSQL integration
+Location accuracy and availability depend on the device, browser permissions, and connectivity.
 
----
+### 👥 Emergency Contacts
+- Add and manage multiple emergency contacts
+- Store contact details in PostgreSQL
+- Integrate emergency contacts with the SOS notification workflow
+- Persist contacts across page refreshes
 
-## 🔥 Community Safety Dashboard
-- Community hazard reporting
-- Dynamic risk heatmap
-- Community intelligence cards
-- AI insight panel
-- Risk visualization dashboard
+### 🔐 Authentication
+- User registration and login
+- JWT-based API authentication
+- Protected backend routes
 
----
+### 📷 Secure Evidence Upload
+- Upload evidence files through the application
+- Cloudinary-backed media storage
+- Evidence records associated with the relevant SOS where supported
+- Database-backed evidence metadata
 
-## 📊 Analytics Dashboard
-- Community report statistics
-- Risk overview
-- Guardian activity metrics
-- Safety analytics visualizations
+Use test data when validating uploads. Access and retention depend on application configuration and the storage provider.
 
----
+### 🧭 Area Risk and Nearby Risk
+- Display location-related risk information
+- Nearby Risk results based on a geographic radius and available coordinates
+- Area Risk information for the selected or nearest mapped risk record
+- Expandable and minimizable risk cards
+- Community reports and public reference data used as separate data sources where applicable
 
-## 🔐 Authentication & Security
-- User Registration
-- Login
-- JWT Authentication
-- Protected APIs
+Nearby results require usable coordinates. Public reference statistics may be aggregated and may not identify individual incident locations. Risk scores are advisory and should not be interpreted as verified predictions of future crime.
+
+### 🗣️ Community Safety Reporting
+- Submit community incident reports
+- Record incident descriptions and location information
+- Support evidence upload where configured
+- Use community report data in safety visualizations and risk analysis
+
+Location fields should only be populated when supported by the available geocoding result. Missing coordinates or administrative fields should not be guessed.
+
+### 📊 Analytics
+- Community-report and safety overview visualizations
+- Risk-related summaries
+- Dashboard analytics based on available application data
+
+The accuracy and coverage of analytics depend on the quality and completeness of the underlying records.
+
+### ☁️ Cloud and Infrastructure
+- PostgreSQL database with Prisma ORM
+- Cloudinary for media storage
 - Firebase Cloud Messaging integration
+- Vercel frontend deployment
+- Render backend deployment
 
 ---
 
-## ☁️ Cloud & Infrastructure
+## 🧠 Current Capabilities and Roadmap
 
-- PostgreSQL hosted on Neon
-- Secure media storage with Cloudinary
-- Firebase Cloud Messaging
-- Prisma ORM
+SwaShakti combines implemented emergency-response workflows with developing safety-intelligence features. Related functionality does not necessarily mean that every advanced AI capability is complete.
 
----
+### Implemented or available in the current application
+- SOS workflow and emergency-contact email notifications
+- Emergency-contact management
+- Location-aware Area Risk and Nearby Risk displays
+- Community incident reporting
+- Route planning and risk-related information, where available in the current deployment
+- Route-deviation functionality, where available in the current deployment
+- Evidence upload
+- Dashboard analytics and community safety visualizations
 
-## 🌍 Deployment
+### Planned or evolving
+- Further validation and refinement of risk predictions
+- Advanced AI-assisted safety recommendations
+- Distress voice recognition and automatic distress detection
+- GPS-to-landmark translation
+- Bhashini multilingual integration
+- AI-generated fake calls
+- Hardware-triggered SOS
+- Expanded predictive safety analytics
+- Offline SOS and smartwatch integration
 
-- Live frontend deployed on Vercel
-- Backend deployed on Render
-
----
-
-## 🔄 Real-Time Communication
-
-- Socket.IO powered live communication
-- Real-time SOS status updates
-- Live location broadcasting
-
----
-
-# 🧠 AI Roadmap
-
-SwaShakti has been architected with an AI-first vision. While the current release focuses on the core emergency response ecosystem, the following intelligent capabilities are planned for future iterations:
-
-- 🧠 AI Safety Score Engine
-- 🗺️ Dynamic Safe Route Recommendation
-- 🎙️ Distress Voice Recognition
-- 📍 GPS-to-Landmark Translation
-- 🚖 Route Deviation Detection
-- 🔥 Community Risk Prediction
-- 🌍 Bhashini Multilingual Integration
-- 📞 AI Fake Call Generation
-- 📊 Predictive Safety Analytics
-
-These features represent the long-term roadmap of SwaShakti and are not fully implemented in the current release.
-The current version focuses on delivering a robust emergency response platform while establishing the architectural foundation for future AI-powered safety capabilities.
+Do not treat a roadmap item as implemented unless it has been verified in the current application and deployment.
 
 ---
 
-# 🏗️ Tech Stack
+## 🏗️ Tech Stack
 
-## Frontend
-
+### Frontend
 - React
 - TypeScript
 - Vite
@@ -181,363 +164,283 @@ The current version focuses on delivering a robust emergency response platform w
 - Framer Motion
 - Socket.IO Client
 
----
-
-## Backend
-
+### Backend
 - Node.js
 - Express.js
+- TypeScript
 - Prisma ORM
 - Socket.IO
-- JWT Authentication
+- JWT authentication
 - Multer
-- Cloudinary
+- Cloudinary SDK
 
----
-
-## Database
-
-- PostgreSQL (Neon)
-
----
-
-## Cloud Services
-
+### Database and Services
+- PostgreSQL (Neon deployment)
 - Firebase Cloud Messaging
 - Cloudinary
 
----
-
-## Deployment
-
-- Vercel
-- Render
+### Deployment
+- Vercel (frontend)
+- Render (backend)
 
 ---
 
-# 🔄 System Workflow
+## 🔄 High-Level Workflow
 
 ```text
-User Authentication
-        │
-Emergency Contacts Setup
-        │
-Journey Monitoring
-        │
-Real-Time Location Tracking
-        │
-Community Intelligence Monitoring
-        │
-Emergency Trigger
-        │
-SOS Created
-        │
-Evidence Collection
-        │
-Emergency Contacts Notified
-        │
-Live Tracking
-        │
-Dashboard Updated
+User registers or logs in
+          |
+          v
+Configures emergency contacts
+          |
+          v
+Uses dashboard, location and risk information
+          |
+          +------------------------------+
+          |                              |
+          v                              v
+Submits community report          Activates SOS
+          |                              |
+          v                              v
+Community risk views             SOS session and location
+                                         |
+                                         v
+                              Emergency contact email alerts
+                                         |
+                                         v
+                              Evidence upload, if required
+```
+
+The exact flow depends on permissions, network connectivity, and configured services.
+
+---
+
+## 🏛️ Architecture
+
+```text
+React + Vite Frontend
+        |
+        | REST APIs / Socket.IO
+        v
+Node.js + Express Backend
+        |
+        +------------------+------------------+
+        |                  |                  |
+        v                  v                  v
+ PostgreSQL            Cloudinary       Firebase services
+ (via Prisma)          Evidence media   FCM / configured features
 ```
 
 ---
 
-# 📊 Project Status
+## 📊 Project Status
 
-| Feature | Status |
-|---------|--------|
-| Authentication | ✅ Completed |
-| Emergency Contacts | ✅ Completed |
-| Smart SOS | ✅ Completed |
-| Live GPS Tracking | ✅ Completed |
-| Socket.IO Integration | ✅ Completed |
-| Evidence Vault | ✅ Completed |
-| Community Dashboard | ✅ Completed |
-| Analytics Dashboard | ✅ Completed |
-| Cloud Deployment | ✅ Completed |
-| AI Safety Score Engine | 🚧 Planned |
-| Voice Detection | 🚧 Planned |
-| Safe Route Recommendation | 🚧 Planned |
-| Bhashini Integration | 🚧 Planned |
-| Hardware SOS Trigger | 🚧 Planned |
+| Area | Status |
+|---|---|
+| Authentication | Manually tested |
+| Emergency contacts | Manually tested |
+| SOS and email alerts | Manually tested |
+| Nearby Risk and Area Risk | Manually tested |
+| Community reporting | Manually tested |
+| Evidence upload | Manually tested |
+| Frontend production build | Successful |
+| Backend TypeScript validation | Known errors remain; see Development Notes |
+| Advanced AI roadmap features | Planned or evolving as listed above |
+
+The workflow statuses reflect manual checks performed during development, not an independent security audit or guarantee of production reliability.
 
 ---
 
-# 🚀 Future Enhancements
+## ⚙️ Local Setup
 
-SwaShakti is designed to evolve into a comprehensive AI-powered safety ecosystem.
+### Prerequisites
+- Node.js and npm
+- Access to a PostgreSQL database
+- Firebase project configuration for the features you use
+- Cloudinary account for evidence uploads
+- Email account configured for backend email delivery
 
-### 🤖 AI Features
-
-- AI Safety Score Engine
-- Explainable AI Route Planning
-- Voice Activated SOS
-- Automatic Distress Detection
-- Smartwatch Integration
-- Offline SOS Mode
-- Hardware Emergency Trigger
-- AI Landmark Detection
-- Predictive Route Risk Analysis
-- Community Crime Prediction
-- Smart City Integration
-
----
-
-### 💳 SwaShakti Plus (Future)
-
-To ensure that all life-saving emergency services remain free, SwaShakti may introduce an optional premium subscription (**starting from ₹1/day or an affordable monthly subscription, focused on education, preparedness, and advanced AI-powered safety insights while ensuring all emergency services remain completely free.**) to support continuous platform development.
-
-Premium features could include:
-
-- 📚 Personalized women's safety learning modules
-- 🥋 Self-defense video tutorials by certified trainers
-- 🧠 AI-powered personalized safety recommendations
-- 📍 Location-specific travel advisories
-- 🚨 Weekly alerts for newly reported unsafe areas
-- 🧾 Digital emergency preparedness checklists
-- 👩‍⚕️ Mental health and legal support resources
-- 🎁 Community contributor rewards and badges
-
-> **Core emergency features—including SOS, live tracking, emergency contacts, and evidence storage—will always remain free for every user.**
-
----
-
-# 📸 Application Preview
-
-## 🚀 Landing Page
-
-![Landing Page](assets/screenshots/landing-page.png)
-
----
-
-## 📝 Safety Registration
-
-![Registration](assets/screenshots/onboarding.png)
-
----
-
-## 🛡️ User Dashboard
-
-![Dashboard](assets/screenshots/user-safety-dashboard.png)
-
----
-
-## 🧠 AI Safety Engine (Prototype UI)
-
-![AI Engine](assets/screenshots/core-ai-safety-engine.png)
-
----
-
-## 🚔 Police Dashboard (Prototype UI)
-
-![Police Dashboard](assets/screenshots/police-dispatch-dashboard.png)
-
----
-
-## 📊 Analytics Dashboard
-
-![Analytics](assets/screenshots/analytics-dashboard.png)
-
----
-
-# 📂 Project Structure
-
-```
-Frontend
-├── React
-├── TypeScript
-├── Components
-├── Hooks
-├── Services
-└── Assets
-
-Backend
-├── Express
-├── Prisma
-├── Routes
-├── Controllers
-├── Services
-├── Middleware
-└── Socket.IO
-```
-
----
-
-# ⚙️ Local Setup
-
-## Clone Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/pari-28/SwaShakti.git
-
 cd SwaShakti
 ```
 
----
+### 2. Install frontend dependencies
 
-## Install Frontend
+From the repository root:
 
 ```bash
 npm install
 ```
 
----
-
-## Install Backend
+### 3. Install backend dependencies
 
 ```bash
 cd backend
 npm install
+cd ..
 ```
 
----
+### 4. Configure frontend environment variables
 
-## Environment Variables
-
-### Frontend (.env)
+Create a `.env` file in the repository root. Use the variable names expected by the frontend:
 
 ```env
 VITE_API_URL=http://localhost:5001
 
 VITE_FIREBASE_API_KEY=
-
 VITE_FIREBASE_AUTH_DOMAIN=
-
 VITE_FIREBASE_PROJECT_ID=
-
 VITE_FIREBASE_STORAGE_BUCKET=
-
 VITE_FIREBASE_MESSAGING_SENDER_ID=
-
 VITE_FIREBASE_APP_ID=
-
 VITE_FIREBASE_VAPID_KEY=
 ```
 
----
+Fill in values from your own Firebase project and local backend configuration. Confirm the frontend uses these exact variable names before deploying.
 
-### Backend (.env)
+### 5. Configure backend environment variables
+
+Create `backend/.env`:
 
 ```env
 DATABASE_URL=
-
 JWT_SECRET=
-
 PORT=5001
 
 CLOUDINARY_CLOUD_NAME=
-
 CLOUDINARY_API_KEY=
-
 CLOUDINARY_API_SECRET=
 
 FIREBASE_PROJECT_ID=
-
 FIREBASE_CLIENT_EMAIL=
-
 FIREBASE_PRIVATE_KEY=
+
+EMAIL_USER=
+EMAIL_APP_PASSWORD=
 ```
 
----
+- `DATABASE_URL`: PostgreSQL connection string.
+- `JWT_SECRET`: a strong, unique secret for signing tokens.
+- `PORT`: backend listening port; the example uses `5001`.
+- `CLOUDINARY_*`: credentials for evidence media storage.
+- `FIREBASE_*`: service-account configuration used by the backend, if enabled.
+- `EMAIL_USER`: dedicated sender account used for SOS email alerts.
+- `EMAIL_APP_PASSWORD`: app password for the sender account when using Gmail SMTP.
 
-## Start Backend
+For `FIREBASE_PRIVATE_KEY`, follow the newline format expected by the backend configuration. Do not commit `.env` files or paste secrets into issues, logs, screenshots, or public repositories.
+
+**Never put backend-only secrets in frontend variables.** Variables prefixed with `VITE_` are exposed to client-side code.
+
+### 6. Start the backend
+
+In one terminal:
 
 ```bash
 cd backend
-
-npm install
-
 npm start
 ```
 
----
+The backend package defines both `npm start` and `npm run dev` to run `tsx src/server.ts`.
 
-## Run Frontend
+### 7. Start the frontend
+
+In a second terminal, from the repository root:
 
 ```bash
-npm install
 npm run dev
 ```
 
-## Run Backend
+The root package starts Vite on port `3000`.
+
+### 8. Build the frontend for production
+
+From the repository root:
 
 ```bash
-cd backend
-npm install
-npm start
+npm run build
 ```
+
+The production output is generated in `dist/`.
 
 ---
 
-# 🏛️ Architecture
+## 🔌 API Overview
 
-```text
-                    Frontend (React + Vite)
-                             │
-                     REST APIs + Socket.IO
-                             │
-                    Express.js Backend
-                             │
-      ┌──────────────┬───────────────┬───────────────┐
-      │              │               │
- PostgreSQL      Cloudinary      Firebase FCM
-    (Neon)        Evidence       Push Notifications
-```
+The following are representative endpoints documented in the project. Exact routes and request formats should be checked against the current backend route files.
 
----
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/auth/register` | Register a user |
+| `POST` | `/api/auth/login` | Log in |
+| `GET` | `/api/user/profile` | Retrieve the user profile |
+| `POST` | `/api/sos` | Create an SOS alert |
+| `GET` | `/api/sos/active` | Retrieve the active SOS |
+| `PATCH` | `/api/sos/:id/status` | Update SOS status |
+| `POST` | `/api/evidence/upload` | Upload emergency evidence |
+| `GET` | `/api/evidence/:sosId` | Retrieve evidence for an SOS |
 
-# 🔌 API Overview
-
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| POST | /api/auth/register | Register a new user |
-| POST | /api/auth/login | User login |
-| GET | /api/user/profile | Get user profile |
-| POST | /api/sos | Create SOS alert |
-| GET | /api/sos/active | Get active SOS |
-| PATCH | /api/sos/:id/status | Update SOS status |
-| POST | /api/evidence/upload | Upload emergency evidence |
-| GET | /api/evidence/:sosId | Fetch evidence |
-```
+Additional endpoints may be available for emergency contacts, community reports, risk information, analytics, and resending SOS notifications.
 
 ---
 
-# 👩‍💻 Team
+## 🔒 Security and Privacy Notes
 
-### Team SwaShakti
+- Keep `.env` and `backend/.env` out of version control.
+- Use `.env.example` only for placeholder values.
+- Never commit Firebase Admin private keys, email app passwords, database connection strings, or JWT signing secrets.
+- Frontend Firebase configuration keys are visible to clients by design; secure Firebase services with appropriate rules and API-key restrictions.
+- Avoid logging credentials or full connection strings.
+- Validate user input and protect sensitive API routes.
+- Use test contacts and test records when verifying emergency workflows.
+- Review retention, access controls, and permissions for uploaded evidence.
 
-**Build for Good 2026**
+---
 
+## 🧪 Testing and Development Notes
+
+The following workflows have been manually tested during development:
+- Registration/login and dashboard access
+- Emergency contact persistence
+- SOS creation and email alerts
+- Nearby Risk and Area Risk displays
+- Community report submission and persistence
+- Evidence upload and access
+
+The frontend production build completed successfully during the latest check. Vite reported a large JavaScript chunk warning; this is a performance optimization opportunity rather than a build failure.
+
+The backend TypeScript command `npx tsc --noEmit` currently reports errors in multiple files, including configuration, request-handler typing, route parameters, and community-report geocoding. These errors require a separate review. A successful manual workflow test does not mean the backend type check is clean.
+
+---
+
+## 🚧 Future Enhancements
+
+Potential future work includes:
+- Improved validation and explainability of risk analysis
+- More robust route-safety evaluation
+- Additional multilingual accessibility
+- Offline-friendly emergency flows
+- Optional hardware and wearable integrations
+- Expanded predictive analytics after appropriate data validation
+- Performance optimization and frontend code splitting
+- Automated integration and regression tests
+
+---
+
+## 👩‍💻 Team
+
+### Team SwaShakti — Build for Good 2026
 - Pari Sangamnerkar
 - Yash Shivnani
 
----
+Built with ❤️ for safety, accessibility, and social impact.
 
-Built with ❤️ for Build for Good 2026.
+## 📄 License
 
-Our mission is to leverage technology, real-time communication, and future AI innovations to make everyday travel safer and more confident for women.
+Developed as part of **Build for Good 2026** for educational and social-impact purposes. Add a specific open-source license file if you intend to grant reuse and redistribution rights.
 
----
+## 🙏 Acknowledgements
 
-# 📄 License
-
-This project was developed as part of **Build for Good 2026** for educational and social impact purposes.
-
----
-
-## ⭐ Acknowledgements
-
-Special thanks to the **Build for Good 2026** organizers, mentors, and the open-source community for providing the tools and inspiration to build impactful technology.
-
----
-
-## 📌 Project Status
-
-✅ Active Development
-
-🚀 Build for Good 2026 Submission
-
-🌍 Deployed on Vercel & Render
-
-🔮 AI-first Roadmap
+Thanks to the Build for Good 2026 organizers, mentors, and open-source communities whose tools and resources support projects for social impact.

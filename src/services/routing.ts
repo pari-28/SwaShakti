@@ -1,10 +1,15 @@
+
 import { PlannedRoute, RouteCoordinate } from "../types/route";
 
 const OSRM_BASE_URL = "https://router.project-osrm.org";
 
+// Configurable product threshold, not a guarantee of safety.
+const MAX_START_SNAP_DISTANCE = 150;
+const MAX_DESTINATION_SNAP_DISTANCE = 300;
 
 interface OSRMRouteResponse {
   code: string;
+  message?: string;
   routes?: {
     distance: number;
     duration: number;
@@ -19,7 +24,6 @@ interface OSRMRouteResponse {
   }[];
 }
 
-
 export async function getRoute(
   start: RouteCoordinate,
   destination: RouteCoordinate
@@ -30,12 +34,8 @@ export async function getRoute(
   ].join(";");
 
   const url =
-  `${OSRM_BASE_URL}/route/v1/driving/${coordinates}` +
-  `?overview=full` +
-  `&geometries=geojson` +
-  `&steps=false`;
-
-  console.log("OSRM ROUTE URL:", url);
+    `${OSRM_BASE_URL}/route/v1/driving/${coordinates}` +
+    `?overview=full&geometries=geojson&steps=false`;
 
   const response = await fetch(url);
 
@@ -45,12 +45,23 @@ export async function getRoute(
 
   const data: OSRMRouteResponse = await response.json();
 
+  if (data.code !== "Ok" || !data.routes?.length) {
+    throw new Error(
+      data.message || "No route could be found for this destination."
+    );
+  }
 
+  if (data.waypoints?.length !== 2) {
+    throw new Error(
+      "The routing service could not confirm the road connection. Please try another location."
+    );
+  }
 
+  const startWaypoint = data.waypoints[0];
+  const destinationWaypoint = data.waypoints[1];
 
-if (data.waypoints?.length === 2) {
-  const startSnapDistance = data.waypoints[0].distance;
-  const destinationSnapDistance = data.waypoints[1].distance;
+  const startSnapDistance = startWaypoint.distance;
+  const destinationSnapDistance = destinationWaypoint.distance;
 
   console.log("START ROAD SNAP DISTANCE:", startSnapDistance, "meters");
   console.log(
@@ -59,27 +70,16 @@ if (data.waypoints?.length === 2) {
     "meters"
   );
 
-  const MAX_START_SNAP_DISTANCE = 50;
-  const MAX_DESTINATION_SNAP_DISTANCE = 300;
-
   if (startSnapDistance > MAX_START_SNAP_DISTANCE) {
     throw new Error(
-      `Starting point is too far from a road (${Math.round(startSnapDistance)} m). Please choose a nearby location.`
+      `Your starting point is ${Math.round(startSnapDistance)} m from the nearest mapped road, exceeding the ${MAX_START_SNAP_DISTANCE} m limit. Select a closer starting point.`
     );
   }
 
   if (destinationSnapDistance > MAX_DESTINATION_SNAP_DISTANCE) {
     throw new Error(
-      `Destination is too far from a road (${Math.round(destinationSnapDistance)} m). Please select a more precise destination.`
+      `Your destination is ${Math.round(destinationSnapDistance)} m from the nearest mapped road. Please select a more precise destination.`
     );
-  }
-}
-
-
-
-
-  if (data.code !== "Ok" || !data.routes?.length) {
-    throw new Error("No route could be found for this destination.");
   }
 
   const route = data.routes[0];
@@ -87,6 +87,11 @@ if (data.waypoints?.length === 2) {
   return {
     start,
     destination,
+    roadStart: {
+      longitude: startWaypoint.location[0],
+      latitude: startWaypoint.location[1],
+    },
+    startSnapDistanceMeters: startSnapDistance,
     distanceMeters: route.distance,
     durationSeconds: route.duration,
     geometry: route.geometry,
