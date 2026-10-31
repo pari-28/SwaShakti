@@ -48,11 +48,20 @@ export const updateEmergencyContact = async (
   res: Response
 ) => {
   try {
-    const contact = await EmergencyService.update(
-      req.userId!,
-      req.params.id,
-      req.body
-    );
+    const id = req.params.id;
+
+if (typeof id !== "string") {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid contact ID.",
+  });
+}
+
+const contact = await EmergencyService.update(
+  req.userId!,
+  id,
+  req.body
+);
 
     res.json({
       success: true,
@@ -71,10 +80,19 @@ export const deleteEmergencyContact = async (
   res: Response
 ) => {
   try {
-    const result = await EmergencyService.delete(
-      req.userId!,
-      req.params.id
-    );
+    const id = req.params.id;
+
+if (typeof id !== "string") {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid contact ID.",
+  });
+}
+
+const result = await EmergencyService.delete(
+  req.userId!,
+  id
+);
 
     res.json({
   success: true,
@@ -95,10 +113,19 @@ export const setPrimaryContact = async (
   res: Response
 ) => {
   try {
-    const contact = await EmergencyService.setPrimary(
-      req.userId!,
-      req.params.id
-    );
+    const id = req.params.id;
+
+if (typeof id !== "string") {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid contact ID.",
+  });
+}
+
+const contact = await EmergencyService.setPrimary(
+  req.userId!,
+  id
+);
 
     res.json({
       success: true,

@@ -29,12 +29,12 @@ export async function getCityRiskByNameController(
 ) {
   const cityName = req.params.city;
 
-  if (!cityName) {
-    return res.status(400).json({
-      success: false,
-      message: "City name is required",
-    });
-  }
+if (typeof cityName !== "string" || !cityName.trim()) {
+  return res.status(400).json({
+    success: false,
+    message: "City name is required",
+  });
+}
 
   const data = await getCityRiskByName(cityName);
 
@@ -70,12 +70,12 @@ export async function getCommunityAreaRiskByLocationController(
 ) {
   const locationName = req.params.location;
 
-  if (!locationName) {
-    return res.status(400).json({
-      success: false,
-      message: "Location is required",
-    });
-  }
+if (typeof locationName !== "string" || !locationName.trim()) {
+  return res.status(400).json({
+    success: false,
+    message: "Location is required",
+  });
+}
 
   const data =
     await getCommunityAreaRiskByLocation(locationName);

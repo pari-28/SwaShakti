@@ -1,4 +1,10 @@
-import type { Request, Response, NextFunction } from "express";
+import type {
+  Request,
+  Response,
+  NextFunction,
+  RequestHandler,
+} from "express";
+
 import { verifyToken } from "../utils/jwt";
 
 interface JwtPayload {
@@ -10,12 +16,13 @@ export interface AuthRequest extends Request {
   file?: Express.Multer.File;
 }
 
-export const authenticate = (
-  req: AuthRequest,
+export const authenticate: RequestHandler = (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
+    const authReq = req as AuthRequest;
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -43,7 +50,7 @@ export const authenticate = (
       });
     }
 
-    req.userId = decoded.userId;
+    authReq.userId = decoded.userId;
 
     next();
   } catch {

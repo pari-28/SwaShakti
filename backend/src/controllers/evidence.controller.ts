@@ -66,9 +66,16 @@ console.log("Existing SOS:", existing);
 
   static getEvidence = asyncHandler(
     async (req: AuthRequest, res: Response) => {
-      const { sosId } = req.params;
+      const sosId = req.params.sosId;
 
-      const evidence = await EvidenceService.getEvidenceBySOS(sosId);
+if (typeof sosId !== "string") {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid SOS ID.",
+  });
+}
+
+const evidence = await EvidenceService.getEvidenceBySOS(sosId);
 
       return res.status(200).json({
         success: true,

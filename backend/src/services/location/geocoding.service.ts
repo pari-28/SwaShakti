@@ -193,24 +193,30 @@ export async function geocodeLocation(
     })
     .sort((a, b) => b.score - a.score);
 
-  const output: GeocodingCandidate[] = ranked.map(({ result }) => {
-    const address = result.address ?? {};
+   const output: GeocodingCandidate[] = ranked.map(({ result }) => {
+  const address = result.address ?? {};
 
-    return {
-      latitude: Number(result.lat),
-      longitude: Number(result.lon),
-      displayName: result.display_name ?? cleanedLocation,
-      city:
-        clean(address.city) ??
-        clean(address.town) ??
-        clean(address.municipality) ??
-        clean(address.village),
-      district:
-        clean(address.state_district) ??
-        clean(address.county),
-      state: clean(address.state),
-    };
-  });
+  const city =
+    clean(address.city) ??
+    clean(address.town) ??
+    clean(address.municipality) ??
+    clean(address.village);
+
+  const district =
+    clean(address.state_district) ??
+    clean(address.county);
+
+  const state = clean(address.state);
+
+  return {
+    latitude: Number(result.lat),
+    longitude: Number(result.lon),
+    displayName: result.display_name ?? cleanedLocation,
+    ...(city ? { city } : {}),
+    ...(district ? { district } : {}),
+    ...(state ? { state } : {}),
+  };
+});
 
   console.table(
     output.map((candidate) => ({

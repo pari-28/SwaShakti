@@ -31,11 +31,17 @@ class SOSController {
 
   static updateLocation = asyncHandler(
     async (req: AuthRequest, res: Response) => {
-      const sos = await SOSService.updateLocation(
-        req.userId!,
-        req.params.id,
-        req.body
-      );
+      const id = req.params.id;
+
+if (typeof id !== "string") {
+  throw new ApiError(400, "Invalid SOS ID.");
+}
+
+const sos = await SOSService.updateLocation(
+  req.userId!,
+  id,
+  req.body
+);
 
       return res.status(200).json({
         success: true,
@@ -49,11 +55,17 @@ class SOSController {
     async (req: AuthRequest, res: Response) => {
       const { status } = req.body;
 
-      const sos = await SOSService.updateStatus(
-        req.userId!,
-        req.params.id,
-        status
-      );
+      const id = req.params.id;
+
+if (typeof id !== "string") {
+  throw new ApiError(400, "Invalid SOS ID.");
+}
+
+const sos = await SOSService.updateStatus(
+  req.userId!,
+  id,
+  status
+);
 
       return res.status(200).json({
         success: true,
@@ -68,10 +80,16 @@ class SOSController {
 static resend = asyncHandler(async (req: AuthRequest, res: Response) => {
 
 
-  const result = await SOSService.resend(
-    req.userId!,
-    req.params.id
-  );
+  const id = req.params.id;
+
+if (typeof id !== "string") {
+  throw new ApiError(400, "Invalid SOS ID.");
+}
+
+const result = await SOSService.resend(
+  req.userId!,
+  id
+);
 
 
 

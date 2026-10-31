@@ -1,20 +1,14 @@
 import { Router } from "express";
+
 import {
   generateAreaRiskAnalysisController,
   safetyAssistantController,
 } from "../controllers/ai.controller.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = Router();
 
-router.post(
-  "/risk",
-  asyncHandler(generateAreaRiskAnalysisController)
-);
+router.post("/risk", generateAreaRiskAnalysisController);
 
-router.post(
-  "/assistant",
-  asyncHandler(safetyAssistantController)
-);
+router.post("/assistant", safetyAssistantController);
 
 export default router;

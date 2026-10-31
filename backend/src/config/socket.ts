@@ -6,12 +6,17 @@ import { registerSOSSocketEvents } from "../socket/sos.socket";
 let io: Server;
 
 export const initializeSocket = (httpServer: HttpServer) => {
-  io = new Server(httpServer, {
-    cors: {
-      origin: "http://localhost:3000", // Change if your frontend runs on another port
-      credentials: true,
-    },
-  });
+  const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+].filter((origin): origin is string => Boolean(origin));
+
+io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+});
 
   io.use((socket: Socket, next) => {
   try {

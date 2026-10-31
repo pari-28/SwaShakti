@@ -11,6 +11,19 @@ export interface EvidenceItem {
   confidence: string;
 }
 
+export interface CommunityEvidenceAIProps {
+  reportsCount: number;
+  heatmap: string[];
+  onReportUnsafeZone: () => void;
+  evidenceItems: EvidenceItem[];
+  communityHazards: {
+    id: number;
+    label: string;
+    risk: "danger" | "warning";
+  }[];
+  fetchEvidence: () => Promise<void>;
+}
+
 export default function CommunityEvidenceAI({
   reportsCount,
   heatmap,

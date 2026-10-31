@@ -21,7 +21,17 @@ import analyticsRoutes from "./routes/analytics.routes";
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+].filter((origin): origin is string => Boolean(origin));
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Root Route
@@ -60,7 +70,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use(errorHandler);
 
 // Start Server
-const PORT = process.env.PORT || 5001;
+const PORT = Number(process.env.PORT) || 5001;
 
 const httpServer = http.createServer(app);
 

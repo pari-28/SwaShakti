@@ -15,6 +15,8 @@ import {
   fcmTokenSchema,
 } from "../validators/auth.validator";
 
+import { asyncHandler } from "../utils/asyncHandler";
+
 const router = Router();
 
 router.get("/", (req, res) => {
@@ -29,9 +31,13 @@ router.post(
   "/fcm-token",
   authenticate,
   validate(fcmTokenSchema),
-  saveFcmToken
+  asyncHandler(saveFcmToken)
 );
 
-router.get("/me", authenticate, getCurrentUser);
+router.get(
+  "/me",
+  authenticate,
+  asyncHandler(getCurrentUser)
+);
 
 export default router;

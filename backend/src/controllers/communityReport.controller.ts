@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
 import { CommunityReportService } from "../services/communityReport.service";
@@ -26,35 +26,36 @@ export class CommunityReportController {
       // -----------------------------------------
       const geocoded = await geocodeLocation(req.body.location);
 
-      const report = await CommunityReportService.createReport({
-        userId: req.userId!,
-        category: req.body.category,
-        description: req.body.description,
+      const bestCandidate = geocoded[0];
 
-        // User-provided incident location
-        location: req.body.location,
-        locationPrecision: req.body.locationPrecision,
+const report = await CommunityReportService.createReport({
+  userId: req.userId!,
+  category: req.body.category,
+  description: req.body.description,
+  location: req.body.location,
 
-        // Automatically derived from INCIDENT location
-        latitude: geocoded?.latitude,
-        longitude: geocoded?.longitude,
-        city: geocoded?.city,
-        district: geocoded?.district,
-        state: geocoded?.state,
+  ...(req.body.locationPrecision !== undefined
+    ? { locationPrecision: req.body.locationPrecision }
+    : {}),
 
-        occurredAt: req.body.occurredAt,
+  ...(bestCandidate?.latitude !== undefined
+    ? { latitude: bestCandidate.latitude }
+    : {}),
+  ...(bestCandidate?.longitude !== undefined
+    ? { longitude: bestCandidate.longitude }
+    : {}),
+  ...(bestCandidate?.city ? { city: bestCandidate.city } : {}),
+  ...(bestCandidate?.district ? { district: bestCandidate.district } : {}),
+  ...(bestCandidate?.state ? { state: bestCandidate.state } : {}),
 
-        // Optional Cloudinary evidence
-        evidenceUrl: file
-          ? (file as any).path
-          : undefined,
+  ...(req.body.occurredAt !== undefined
+    ? { occurredAt: req.body.occurredAt }
+    : {}),
 
-        evidencePublicId: file
-          ? (file as any).filename
-          : undefined,
-
-        evidenceType,
-      });
+  ...(file ? { evidenceUrl: (file as any).path } : {}),
+  ...(file ? { evidencePublicId: (file as any).filename } : {}),
+  ...(evidenceType ? { evidenceType } : {}),
+});
 
       return res.status(201).json({
         success: true,

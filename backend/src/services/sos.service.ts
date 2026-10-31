@@ -294,7 +294,7 @@ static async resend(userId: string, sosId: string) {
         user?.fullName || "SwaShakti User",
         sos.latitude,
         sos.longitude,
-        sos.message
+        sos.message ?? undefined
       );
 
       emailsSent++;

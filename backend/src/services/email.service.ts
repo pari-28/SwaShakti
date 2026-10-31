@@ -112,7 +112,7 @@ This is an automated SwaShakti emergency notification.
 
 
 
-return info;
+
   }
 }
 

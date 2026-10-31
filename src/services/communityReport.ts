@@ -40,7 +40,7 @@ interface CommunityReportsResponse {
   data: CommunityReport[];
 }
 
-const API_BASE_URL = "http://localhost:5001/api";
+import { API_BASE_URL } from "../config/api";
 
 const getToken = () => localStorage.getItem("token");
 

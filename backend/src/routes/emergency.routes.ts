@@ -14,27 +14,40 @@ import {
   setPrimaryContact,
 } from "../controllers/emergency.controller";
 
+import { asyncHandler } from "../utils/asyncHandler";
+
 const router = Router();
 
 router.post(
   "/",
   authenticate,
   validate(createEmergencySchema),
-  createEmergencyContact
+  asyncHandler(createEmergencyContact)
 );
-router.get("/", authenticate, getEmergencyContacts);
+
+router.get(
+  "/",
+  authenticate,
+  asyncHandler(getEmergencyContacts)
+);
+
 router.put(
   "/:id",
   authenticate,
   validate(updateEmergencySchema),
-  updateEmergencyContact
+  asyncHandler(updateEmergencyContact)
 );
-router.delete("/:id", authenticate, deleteEmergencyContact);
+
+router.delete(
+  "/:id",
+  authenticate,
+  asyncHandler(deleteEmergencyContact)
+);
 
 router.patch(
   "/:id/primary",
   authenticate,
-  setPrimaryContact
+  asyncHandler(setPrimaryContact)
 );
 
 export default router;
