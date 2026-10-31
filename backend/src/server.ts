@@ -22,8 +22,10 @@ const app = express();
 
 // Middleware
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL?.replace(/\/+$/, ""),
+  "https://swa-shakti-rho.vercel.app",
   "http://localhost:3000",
+  "http://localhost:5173",
 ].filter((origin): origin is string => Boolean(origin));
 
 app.use(
