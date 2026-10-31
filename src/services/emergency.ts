@@ -4,7 +4,9 @@ import {
   UpdateEmergencyContact,
 } from "../types/emergency";
 
-const API_BASE = "http://localhost:5001/api/emergency";
+import { API_BASE_URL } from "../config/api";
+
+const API_BASE = `${API_BASE_URL}/emergency`;
 
 const getToken = () => localStorage.getItem("token");
 
