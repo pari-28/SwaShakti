@@ -5,6 +5,38 @@ import NotificationService from "./notification.service";
 import EmailService from "./email.service";
 import { getIO } from "../config/socket";
 
+const getSafeEmailErrorDetails = (error: unknown) => {
+  if (typeof error !== "object" || error === null) {
+    return { errorType: typeof error };
+  }
+
+  const mailError = error as {
+    name?: unknown;
+    code?: unknown;
+    command?: unknown;
+    responseCode?: unknown;
+  };
+
+  return {
+    name:
+      typeof mailError.name === "string"
+        ? mailError.name
+        : "UnknownError",
+    code:
+      typeof mailError.code === "string"
+        ? mailError.code
+        : undefined,
+    command:
+      typeof mailError.command === "string"
+        ? mailError.command
+        : undefined,
+    responseCode:
+      typeof mailError.responseCode === "number"
+        ? mailError.responseCode
+        : undefined,
+  };
+};
+
 class SOSService {
   private static async getEmergencyContacts(userId: string) {
   return prisma.emergencyContact.findMany({
@@ -122,11 +154,12 @@ if (mailResult.accepted?.length > 0) {
   emailsFailed++;
 }
   } catch (error) {
-    emailsFailed++;
-    console.error(
-      "Failed to send an SOS email to an emergency contact."
-    );
-  }
+  emailsFailed++;
+  console.error(
+    "Failed to send an SOS email to an emergency contact.",
+    getSafeEmailErrorDetails(error)
+  );
+}
 }
 
 // Broadcast to connected clients
@@ -318,11 +351,12 @@ static async resend(userId: string, sosId: string) {
         emailsFailed++;
       }
     } catch (error) {
-      emailsFailed++;
-      console.error(
-        "Failed to resend an SOS email to an emergency contact."
-      );
-    }
+  emailsFailed++;
+  console.error(
+    "Failed to resend an SOS email to an emergency contact.",
+    getSafeEmailErrorDetails(error)
+  );
+}
   }
 
   try {
