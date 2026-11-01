@@ -669,13 +669,8 @@ const handleCountdownComplete = async () => {
   await handleTriggerPanicSos();
 };
 const handleResendAlert = async () => {
-  console.log("🔔 RESEND BUTTON CLICKED");
-
   const token = localStorage.getItem("token");
   const sosId = activeSOSIdRef.current;
-
-  console.log("Token exists:", !!token);
-  console.log("Active SOS ID:", sosId);
 
   if (!token || !sosId) {
     alert("No active SOS found.");
@@ -683,8 +678,6 @@ const handleResendAlert = async () => {
   }
 
   try {
-    console.log("📤 Sending resend request...");
-
     const response = await fetch(
       `${API_URL}/api/sos/${sosId}/resend`,
       {
@@ -695,33 +688,36 @@ const handleResendAlert = async () => {
       }
     );
 
-    console.log("📥 Resend response status:", response.status);
-
     const result = await response.json();
-
-    console.log("📥 Resend response:", result);
-
-    console.log("📧 Resend email summary:", {
-  emailsSent: result.data?.emailsSent,
-  emailErrors: result.data?.emailErrors,
-  message: result.data?.message,
-});
 
     if (!response.ok || !result.success) {
       alert(result.message || "Failed to resend emergency alert.");
       return;
     }
 
-    pushLog("🚨 Emergency alert re-sent successfully.");
+    const emailSummary = result.data?.notificationSummary?.email;
 
-    alert("🚨 Emergency alert re-sent successfully.");
+    if (!emailSummary) {
+      alert(
+        "SOS remains active, but email notification status could not be verified."
+      );
+      return;
+    }
 
-    // Don't close the modal immediately
-    // setShowActiveSOSModal(false);
+    pushLog("SOS resend request processed.");
 
+    alert(
+      `SOS remains active.\n\n` +
+      `Email accepted by SMTP: ${emailSummary.acceptedBySmtp}\n` +
+      `Failed: ${emailSummary.failed}\n` +
+      `Skipped: ${emailSummary.skipped}\n\n` +
+      `SMTP acceptance does not guarantee inbox delivery.`
+    );
   } catch (err) {
-    console.error("❌ Resend error:", err);
-    alert("Failed to resend emergency alert.");
+    console.error("Resend request failed:", err);
+    alert(
+      "Unable to complete the resend request. Please check your connection."
+    );
   }
 };
 

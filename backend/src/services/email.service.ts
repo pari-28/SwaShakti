@@ -1,12 +1,21 @@
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD,
-  },
-});
+const emailUser = process.env.EMAIL_USER;
+const emailAppPassword = process.env.EMAIL_APP_PASSWORD;
+
+const transporter =
+  emailUser && emailAppPassword
+    ? nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: emailUser,
+          pass: emailAppPassword,
+        },
+        connectionTimeout: 10_000,
+        greetingTimeout: 8_000,
+        socketTimeout: 30_000,
+      })
+    : null;
 
 class EmailService {
   async sendSOSAlert(
@@ -17,10 +26,31 @@ class EmailService {
     longitude: number,
     message?: string
   ) {
-    const mapsLink =
-      `https://www.google.com/maps?q=${latitude},${longitude}`;
+    if (!transporter || !emailUser) {
+      throw new Error(
+        "SOS email unavailable: EMAIL_USER or EMAIL_APP_PASSWORD is not configured."
+      );
+    }
 
-    // Time when the SOS email is generated
+    const escapeHtml = (value: string) =>
+      value.replace(/[&<>"']/g, (character) => {
+        const entities: Record<string, string> = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        };
+
+        return entities[character] ?? character;
+      });
+
+    const safeContactName = escapeHtml(contactName);
+    const safeUserName = escapeHtml(userName);
+    const safeMessage = message ? escapeHtml(message) : "";
+
+    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
     const triggeredAt = new Date();
 
     const formattedTime = triggeredAt.toLocaleString("en-IN", {
@@ -29,31 +59,25 @@ class EmailService {
       timeZone: "Asia/Kolkata",
     });
 
-
-
-    return await transporter.sendMail({
-      from: `"SwaShakti Emergency Alert" <${process.env.EMAIL_USER}>`,
+    return transporter.sendMail({
+      from: `"SwaShakti Emergency Alert" <${emailUser}>`,
       to,
       subject: "🚨 SwaShakti SOS Emergency Alert",
 
       text: `
-
 Hello ${contactName},
 
 This is an emergency alert from SwaShakti.
 
 An SOS has been triggered by ${userName}.
 
-⏰ Time:
-
+Time:
 ${formattedTime}
 
-📍 Location:
-
+Location:
 ${mapsLink}
 
 Latitude: ${latitude}
-
 Longitude: ${longitude}
 
 ${message ? `Message: ${message}` : ""}
@@ -61,27 +85,25 @@ ${message ? `Message: ${message}` : ""}
 Please contact the person immediately if necessary.
 
 This is an automated SwaShakti emergency notification.
-
       `,
 
       html: `
         <h2>🚨 SwaShakti SOS Emergency Alert</h2>
 
-        <p>Hello ${contactName},</p>
+        <p>Hello ${safeContactName},</p>
 
         <p>
           An <strong>SOS emergency alert</strong> has been triggered
-          through SwaShakti by <strong>${userName}</strong>.
+          through SwaShakti by <strong>${safeUserName}</strong>.
         </p>
 
         <p>
-          <strong>⏰ Time:</strong><br/>
+          <strong>Time:</strong><br/>
           ${formattedTime}
         </p>
 
-
         <p>
-          <strong>📍 Location:</strong>
+          <strong>Location:</strong>
           <a href="${mapsLink}" target="_blank">
             View location on Google Maps
           </a>
@@ -93,14 +115,12 @@ This is an automated SwaShakti emergency notification.
         </p>
 
         ${
-          message
-            ? `<p><strong>Message:</strong> ${message}</p>`
+          safeMessage
+            ? `<p><strong>Message:</strong> ${safeMessage}</p>`
             : ""
         }
 
-        <p>
-          Please contact the person immediately if necessary.
-        </p>
+        <p>Please contact the person immediately if necessary.</p>
 
         <hr/>
 
@@ -109,10 +129,6 @@ This is an automated SwaShakti emergency notification.
         </p>
       `,
     });
-
-
-
-
   }
 }
 

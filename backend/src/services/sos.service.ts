@@ -292,20 +292,18 @@ static async resend(userId: string, sosId: string) {
     },
   });
 
-  let emailsSent = 0;
-  const emailErrors: string[] = [];
+  let emailsAccepted = 0;
+  let emailsFailed = 0;
+  let emailsSkipped = 0;
 
-  // Send a fresh SOS email to each emergency contact with an email address.
   for (const contact of emergencyContacts) {
     if (!contact.email) {
-
+      emailsSkipped++;
       continue;
     }
 
     try {
-
-
-      const response = await EmailService.sendSOSAlert(
+      const mailResult = await EmailService.sendSOSAlert(
         contact.email,
         contact.name,
         user?.fullName || "SwaShakti User",
@@ -314,17 +312,19 @@ static async resend(userId: string, sosId: string) {
         sos.message ?? undefined
       );
 
-      emailsSent++;
-
-
+      if (mailResult.accepted?.length > 0) {
+        emailsAccepted++;
+      } else {
+        emailsFailed++;
+      }
     } catch (error) {
-      console.error("Failed to resend an SOS email to an emergency contact.");
-
-      emailErrors.push(contact.email);
+      emailsFailed++;
+      console.error(
+        "Failed to resend an SOS email to an emergency contact."
+      );
     }
   }
 
-  // Broadcast the resend event to connected clients.
   try {
     const io = getIO();
 
@@ -337,30 +337,25 @@ static async resend(userId: string, sosId: string) {
       sos,
       contacts: emergencyContacts,
     });
-
-
   } catch (error) {
     console.error("Socket broadcast failed during SOS resend.");
-  }
-
-  if (emailsSent === 0) {
-    throw new ApiError(
-      502,
-      emailErrors.length > 0
-        ? "Failed to resend SOS emails. Please try again."
-        : "No emergency contacts have email addresses configured."
-    );
   }
 
   return {
     sos,
     emergencyContacts,
-    emailsSent,
-    emailErrors,
+    notificationSummary: {
+      email: {
+        totalContacts: emergencyContacts.length,
+        acceptedBySmtp: emailsAccepted,
+        failed: emailsFailed,
+        skipped: emailsSkipped,
+      },
+    },
     message:
-      emailErrors.length > 0
-        ? `SOS email sent to ${emailsSent} contact(s); some emails failed.`
-        : `SOS email re-sent successfully to ${emailsSent} contact(s).`,
+      emailsAccepted > 0
+        ? `SOS email accepted by SMTP for ${emailsAccepted} contact(s).`
+        : "SOS remains active, but no emergency contact email was accepted by SMTP.",
   };
 }
 
