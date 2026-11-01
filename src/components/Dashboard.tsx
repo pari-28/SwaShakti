@@ -350,11 +350,52 @@ useEffect(() => {
 
   // Clean up interval on unmount
   useEffect(() => {
-  const savedSOS = localStorage.getItem("activeSOSId");
+  const restoreActiveSOS = async () => {
+    const token = localStorage.getItem("token");
 
-  if (savedSOS) {
-    activeSOSIdRef.current = savedSOS;
-  }
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/sos/active`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 404) {
+        // Backend confirms there is no active SOS.
+        localStorage.removeItem("activeSOSId");
+        activeSOSIdRef.current = null;
+
+        console.log("No active SOS exists in the database.");
+        return;
+      }
+
+      if (!response.ok) {
+        console.error(
+          "Unable to verify active SOS:",
+          response.status
+        );
+        return;
+      }
+
+      const result = await response.json();
+      const activeSOS = result.data;
+
+      if (activeSOS?.id) {
+        localStorage.setItem("activeSOSId", activeSOS.id);
+        activeSOSIdRef.current = activeSOS.id;
+
+        console.log("Active SOS restored from backend:", activeSOS.id);
+      } else {
+        console.error("Unexpected active SOS response:", result);
+      }
+    } catch (error) {
+      console.error("Failed to restore active SOS:", error);
+    }
+  };
+
+  restoreActiveSOS();
 }, []);
 
   useEffect(() => {
@@ -710,7 +751,7 @@ const cancelHoldResolve = () => {
   const handleResetPanic = async () => {
   try {
     const token = localStorage.getItem("token");
-    const sosId = localStorage.getItem("activeSOSId");
+const sosId = activeSOSIdRef.current;
 
     if (!token || !sosId) {
       alert("No active SOS found.");
