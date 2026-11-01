@@ -96,27 +96,36 @@ if (user?.fcmToken) {
 }
 
 // Send SOS email to all emergency contacts
+let emailsAccepted = 0;
+let emailsFailed = 0;
+let emailsSkipped = 0;
+
 for (const contact of emergencyContacts) {
   if (!contact.email) {
-
+    emailsSkipped++;
     continue;
   }
 
   try {
+    const mailResult = await EmailService.sendSOSAlert(
+  contact.email,
+  contact.name,
+  user?.fullName || "SwaShakti User",
+  latitude,
+  longitude,
+  message
+);
 
-
-    const response = await EmailService.sendSOSAlert(
-      contact.email,
-      contact.name,
-      user?.fullName || "SwaShakti User",
-      latitude,
-      longitude,
-      message
-    );
-
-
+if (mailResult.accepted?.length > 0) {
+  emailsAccepted++;
+} else {
+  emailsFailed++;
+}
   } catch (error) {
-    console.error("Failed to send an SOS email to an emergency contact.");
+    emailsFailed++;
+    console.error(
+      "Failed to send an SOS email to an emergency contact."
+    );
   }
 }
 
@@ -140,6 +149,14 @@ try {
 return {
   sos,
   emergencyContacts,
+  notificationSummary: {
+    email: {
+      totalContacts: emergencyContacts.length,
+      acceptedBySmtp: emailsAccepted,
+      failed: emailsFailed,
+      skipped: emailsSkipped,
+    },
+  },
 };
 }
 

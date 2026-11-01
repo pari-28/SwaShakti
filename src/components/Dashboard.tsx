@@ -452,6 +452,8 @@ console.log("===================================");
     riskScore: 95,
   });
 
+
+
   updateState({
   activeAlertCount: globalState.activeAlertCount + 1,
   policeAlerts: [
@@ -631,8 +633,28 @@ updateNested("systemStatus", {
   riskScore: 95,
 });
 
+const emailSummary = result.data.notificationSummary?.email;
 
-
+if (!emailSummary) {
+  alert(
+    "SOS activated and saved. Email notification status could not be verified."
+  );
+} else if (emailSummary.acceptedBySmtp > 0) {
+  alert(
+    `SOS activated successfully.\n\n` +
+    `Email accepted by Gmail: ${emailSummary.acceptedBySmtp}\n` +
+    `Failed: ${emailSummary.failed}\n` +
+    `Skipped: ${emailSummary.skipped}\n\n` +
+    `SMTP acceptance does not guarantee inbox delivery.`
+  );
+} else {
+  alert(
+    "SOS activated and saved, but no emergency contact email was accepted by Gmail.\n\n" +
+    `Failed: ${emailSummary.failed}\n` +
+    `Skipped: ${emailSummary.skipped}\n\n` +
+    "Please use another emergency communication method."
+  );
+}
 
   } catch (err) {
     console.error(err);
