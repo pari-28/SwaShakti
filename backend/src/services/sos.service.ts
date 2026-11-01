@@ -185,7 +185,7 @@ return {
   notificationSummary: {
     email: {
       totalContacts: emergencyContacts.length,
-      acceptedBySmtp: emailsAccepted,
+      acceptedByProvider: emailsAccepted,
       failed: emailsFailed,
       skipped: emailsSkipped,
     },
@@ -381,7 +381,7 @@ static async resend(userId: string, sosId: string) {
     notificationSummary: {
       email: {
         totalContacts: emergencyContacts.length,
-        acceptedBySmtp: emailsAccepted,
+        acceptedByProvider: emailsAccepted,
         failed: emailsFailed,
         skipped: emailsSkipped,
       },

@@ -639,13 +639,13 @@ if (!emailSummary) {
   alert(
     "SOS activated and saved. Email notification status could not be verified."
   );
-} else if (emailSummary.acceptedBySmtp > 0) {
+} else if (emailSummary.acceptedByProvider > 0) {
   alert(
     `SOS activated successfully.\n\n` +
-    `Email accepted by Gmail: ${emailSummary.acceptedBySmtp}\n` +
+    `Email accepted by Google: ${emailSummary.acceptedByProvider}\n` +
     `Failed: ${emailSummary.failed}\n` +
     `Skipped: ${emailSummary.skipped}\n\n` +
-    `SMTP acceptance does not guarantee inbox delivery.`
+    `Google MailApp acceptance does not guarantee inbox delivery.`
   );
 } else {
   alert(
@@ -708,10 +708,10 @@ const handleResendAlert = async () => {
 
     alert(
       `SOS remains active.\n\n` +
-      `Email accepted by SMTP: ${emailSummary.acceptedBySmtp}\n` +
+      `Email accepted by Google MailApp: ${emailSummary.acceptedByProvider}\n` +
       `Failed: ${emailSummary.failed}\n` +
       `Skipped: ${emailSummary.skipped}\n\n` +
-      `SMTP acceptance does not guarantee inbox delivery.`
+      `Google MailApp acceptance does not guarantee inbox delivery.`
     );
   } catch (err) {
     console.error("Resend request failed:", err);
